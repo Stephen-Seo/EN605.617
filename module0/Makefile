@@ -20,7 +20,7 @@ helloworld_cuda: $(CUDA_OBJECTS)
 	$(NVCC) -o helloworld_cuda $<
 
 helloworld_opencl: $(OPENCL_OBJECTS)
-	$(CXX) -o helloworld_opencl -lOpenCL $^
+	$(CXX) -o helloworld_opencl $^ -lOpenCL
 
 %.cu.obj: %.cu
 	$(NVCC) -c -o $@ $<
