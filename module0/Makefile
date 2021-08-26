@@ -25,10 +25,10 @@ CUDA_OBJECTS=$(addsuffix .obj,$(CUDA_SOURCES))
 OPENCL_SOURCES=hello_world_cl.c
 OPENCL_OBJECTS=$(addsuffix .obj,$(OPENCL_SOURCES))
 
-all: helloworld_cpp helloworld_cuda helloworld_opencl
+all: helloworld helloworld_cuda helloworld_opencl
 
-helloworld_cpp: $(CPP_OBJECTS)
-	$(CXX) -o helloworld_cpp $^
+helloworld: $(CPP_OBJECTS)
+	$(CXX) -o helloworld $^
 
 helloworld_cuda: $(CUDA_OBJECTS)
 	$(NVCC) -o helloworld_cuda $^
@@ -52,6 +52,6 @@ run.sh:
 
 clean:
 	rm -f *.obj
-	rm -f helloworld_cpp
+	rm -f helloworld
 	rm -f helloworld_cuda
 	rm -f helloworld_opencl

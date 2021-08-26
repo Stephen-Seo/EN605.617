@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
 function run_simple_helloworld() {
-    if ! [ -e ./helloworld_cpp ]; then
-        make helloworld_cpp
+    if ! [ -e ./helloworld ]; then
+        make helloworld
     fi
-    ./helloworld_cpp
+    ./helloworld
 }
 
 function run_cuda_helloworld() {
