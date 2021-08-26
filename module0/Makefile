@@ -1,6 +1,6 @@
-NVCC=/usr/local/cuda/bin/nvcc
-CC=/usr/bin/gcc
-CXX=/usr/bin/g++
+NVCC?=/usr/local/cuda/bin/nvcc
+CC?=/usr/bin/gcc
+CXX?=/usr/bin/g++
 
 CPP_SOURCES=helloworld.cpp
 CPP_OBJECTS=$(addsuffix .obj,$(CPP_SOURCES))
