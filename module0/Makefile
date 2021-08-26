@@ -48,7 +48,7 @@ helloworld_opencl: $(OPENCL_OBJECTS)
 .PHONY: run.sh clean
 
 run.sh:
-	./run.sh
+	./run.sh -a
 
 clean:
 	rm -f *.obj
