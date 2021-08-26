@@ -17,7 +17,7 @@ helloworld: $(CPP_OBJECTS)
 	$(CXX) -o helloworld $^
 
 helloworld_cuda: $(CUDA_OBJECTS)
-	$(NVCC) -o helloworld_cuda $<
+	$(NVCC) -o helloworld_cuda $^
 
 helloworld_opencl: $(OPENCL_OBJECTS)
 	$(CXX) -o helloworld_opencl $^ -lOpenCL
