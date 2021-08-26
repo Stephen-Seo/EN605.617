@@ -1,20 +1,6 @@
-NVCC=/usr/bin/nvcc
-ifeq (,$(wildcard $(NVCC)))
-	NVCC=/opt/cuda/bin/nvcc
-	ifeq (,$(wildcard $(NVCC)))
-		$(error Could not find nvcc binary)
-	endif
-endif
-
+NVCC=/usr/local/cuda/bin/nvcc
 CC=/usr/bin/gcc
-ifeq (,$(wildcard $(CC)))
-	$(error Could not find gcc binary)
-endif
-
 CXX=/usr/bin/g++
-ifeq (,$(wildcard $(CXX)))
-	$(error Could not find g++ binary)
-endif
 
 CPP_SOURCES=helloworld.cpp
 CPP_OBJECTS=$(addsuffix .obj,$(CPP_SOURCES))
@@ -31,13 +17,13 @@ helloworld: $(CPP_OBJECTS)
 	$(CXX) -o helloworld $^
 
 helloworld_cuda: $(CUDA_OBJECTS)
-	$(NVCC) -o helloworld_cuda $^
+	$(NVCC) -o helloworld_cuda $<
 
 helloworld_opencl: $(OPENCL_OBJECTS)
 	$(CXX) -o helloworld_opencl -lOpenCL $^
 
 %.cu.obj: %.cu
-	$(NVCC) -c -o $@ $^
+	$(NVCC) -c -o $@ $<
 
 %.c.obj: %.c
 	$(CC) -c -o $@ $^
