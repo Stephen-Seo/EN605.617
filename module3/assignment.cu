@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include <chrono>
+
 __global__
 void add(int *x, int *y, int *out) {
     const unsigned int thread_idx = (blockIdx.x * blockDim.x) + threadIdx.x;
@@ -27,12 +29,31 @@ void mod(int *x, int *y, int *out) {
     out[thread_idx] = x[thread_idx] % y[thread_idx];
 }
 
+__global__
+void branching_addsub(int *x, int *y, int *out) {
+    const unsigned int thread_idx = (blockIdx.x * blockDim.x) + threadIdx.x;
+    if (thread_idx % 2 == 0) {
+        out[thread_idx] = x[thread_idx] + y[thread_idx];
+    } else {
+        out[thread_idx] = x[thread_idx] - y[thread_idx];
+    }
+}
+
 enum MathFnToUse {
     MFN_ADD,
     MFN_SUB,
     MFN_MUL,
-    MFN_MOD
+    MFN_MOD,
+    MFN_BRANCHING
 };
+
+bool checkError(cudaError_t cudaError) {
+    if (cudaError != cudaSuccess) {
+        printf("Error: %s\n", cudaGetErrorString(cudaError));
+        return true;
+    }
+    return false;
+}
 
 int main(int argc, char** argv) {
 	// read command line arguments
@@ -61,6 +82,9 @@ int main(int argc, char** argv) {
         } else if (argv[3][0] == 'o') {
             fn = MFN_MOD;
             printf("Using \"modulus\" fn\n");
+        } else if (argv[3][0] == 'b') {
+            fn = MFN_BRANCHING;
+            printf("Using \"branching\" fn\n");
         } else {
             printf("Invalid third argument, using \"add\" fn by default\n");
         }
@@ -69,7 +93,7 @@ int main(int argc, char** argv) {
 	int numBlocks = totalThreads/blockSize;
 
 	// validate command line arguments
-	if (totalThreads % blockSize != 0) {
+    if (totalThreads % blockSize != 0) {
 		++numBlocks;
 		totalThreads = numBlocks*blockSize;
 		
@@ -93,8 +117,7 @@ int main(int argc, char** argv) {
     for(unsigned int i = 0; i < totalThreads; ++i) {
         hostX[i] = i;
         hostY[i] = rand() % 4;
-        // hostOut will be overwritten by data output from CUDA
-        //hostOut[i] = 0;
+        hostOut[i] = 0;
     }
 
     int *x;
@@ -103,32 +126,80 @@ int main(int argc, char** argv) {
 
     printf("cudaMalloc...\n");
     cudaMalloc((void**)&x, totalThreads * sizeof(int));
+    checkError(cudaPeekAtLastError());
     cudaMalloc((void**)&y, totalThreads * sizeof(int));
+    checkError(cudaPeekAtLastError());
     cudaMalloc((void**)&out, totalThreads * sizeof(int));
+    checkError(cudaPeekAtLastError());
 
     printf("cudaMemcpy...\n");
     cudaMemcpy(x, hostX, totalThreads * sizeof(int),
             cudaMemcpyHostToDevice);
+    checkError(cudaPeekAtLastError());
     cudaMemcpy(y, hostY, totalThreads * sizeof(int),
             cudaMemcpyHostToDevice);
+    checkError(cudaPeekAtLastError());
+    cudaMemcpy(out, hostOut, totalThreads * sizeof(int),
+            cudaMemcpyHostToDevice);
+    checkError(cudaPeekAtLastError());
 
     switch (fn) {
-    case MFN_ADD:
+    case MFN_ADD: {
         printf("Executing \"add\"...\n");
+        auto start_clock = std::chrono::high_resolution_clock::now();
         add<<<numBlocks, totalThreads>>>(x, y, out);
-        break;
-    case MFN_SUB:
+        cudaError_t cudaError = cudaDeviceSynchronize();
+        auto end_clock = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                    end_clock - start_clock);
+        printf("Duration of \"add\" nanos: %lld\n", duration.count());
+        checkError(cudaError);
+      } break;
+    case MFN_SUB: {
         printf("Executing \"sub\"...\n");
+        auto start_clock = std::chrono::high_resolution_clock::now();
         subtract<<<numBlocks, totalThreads>>>(x, y, out);
-        break;
-    case MFN_MUL:
+        cudaError_t cudaError = cudaDeviceSynchronize();
+        auto end_clock = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                    end_clock - start_clock);
+        printf("Duration of \"sub\" nanos: %lld\n", duration.count());
+        checkError(cudaError);
+      } break;
+    case MFN_MUL: {
         printf("Executing \"mul\"...\n");
+        auto start_clock = std::chrono::high_resolution_clock::now();
         mult<<<numBlocks, totalThreads>>>(x, y, out);
-        break;
-    case MFN_MOD:
+        cudaError_t cudaError = cudaDeviceSynchronize();
+        auto end_clock = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                    end_clock - start_clock);
+        printf("Duration of \"mul\" nanos: %lld\n", duration.count());
+        checkError(cudaError);
+      } break;
+    case MFN_MOD: {
         printf("Executing \"mod\"...\n");
+        auto start_clock = std::chrono::high_resolution_clock::now();
         mod<<<numBlocks, totalThreads>>>(x, y, out);
-        break;
+        cudaError_t cudaError = cudaDeviceSynchronize();
+        auto end_clock = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                    end_clock - start_clock);
+        printf("Duration of \"mod\" nanos: %lld\n", duration.count());
+        checkError(cudaError);
+      } break;
+    case MFN_BRANCHING: {
+        printf("Executing \"branching\" (%u blocks, %u threads)...\n",
+                numBlocks, totalThreads);
+        auto start_clock = std::chrono::high_resolution_clock::now();
+        branching_addsub<<<numBlocks, totalThreads>>>(x, y, out);
+        cudaError_t cudaError = cudaDeviceSynchronize();
+        auto end_clock = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                    end_clock - start_clock);
+        printf("Duration of \"branching\" nanos: %lld\n", duration.count());
+        checkError(cudaError);
+        } break;
     default:
         printf("ERROR: Invalid state\n");
         cudaFree(x);
@@ -140,6 +211,8 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    checkError(cudaPeekAtLastError());
+
     printf("Copying result to host...\n");
     cudaMemcpy(hostOut, out, totalThreads * sizeof(int),
             cudaMemcpyDeviceToHost);
@@ -149,6 +222,7 @@ int main(int argc, char** argv) {
     cudaFree(y);
     cudaFree(out);
 
+    // print results
     for(unsigned int j = 0; j <= totalThreads / 4; ++j) {
         if (j * 4 < totalThreads) {
             printf("%4u: %4d\t", j * 4, hostOut[j * 4]);
