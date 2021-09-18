@@ -4,33 +4,41 @@
 #include <time.h>
 
 __global__
-void add(unsigned int *x, unsigned int *y, unsigned int *out) {
+void add(int *x, int *y, int *out) {
     const unsigned int thread_idx = (blockIdx.x * blockDim.x) + threadIdx.x;
     out[thread_idx] = x[thread_idx] + y[thread_idx];
 }
 
 __global__
-void subtract(unsigned int *x, unsigned int *y, unsigned int *out) {
+void subtract(int *x, int *y, int *out) {
     const unsigned int thread_idx = (blockIdx.x * blockDim.x) + threadIdx.x;
     out[thread_idx] = x[thread_idx] - y[thread_idx];
 }
 
 __global__
-void mult(unsigned int *x, unsigned int *y, unsigned int *out) {
+void mult(int *x, int *y, int *out) {
     const unsigned int thread_idx = (blockIdx.x * blockDim.x) + threadIdx.x;
     out[thread_idx] = x[thread_idx] * y[thread_idx];
 }
 
 __global__
-void mod(unsigned int *x, unsigned int *y, unsigned int *out) {
+void mod(int *x, int *y, int *out) {
     const unsigned int thread_idx = (blockIdx.x * blockDim.x) + threadIdx.x;
     out[thread_idx] = x[thread_idx] % y[thread_idx];
 }
+
+enum MathFnToUse {
+    MFN_ADD,
+    MFN_SUB,
+    MFN_MUL,
+    MFN_MOD
+};
 
 int main(int argc, char** argv) {
 	// read command line arguments
 	int totalThreads = 512;
 	int blockSize = 256;
+    MathFnToUse fn = MFN_ADD;
 	
 	if (argc >= 2) {
 		totalThreads = atoi(argv[1]);
@@ -40,6 +48,17 @@ int main(int argc, char** argv) {
 		blockSize = atoi(argv[2]);
         printf("Got input %3u for blockSize\n", blockSize);
 	}
+    if (argc >= 4) {
+        if (argv[3][0] == 'a') {
+            fn = MFN_ADD;
+        } else if (argv[3][0] == 's') {
+            fn = MFN_SUB;
+        } else if (argv[3][0] == 'm') {
+            fn = MFN_MUL;
+        } else if (argv[3][0] == 'o') {
+            fn = MFN_MOD;
+        }
+    }
 
 	int numBlocks = totalThreads/blockSize;
 
@@ -56,12 +75,12 @@ int main(int argc, char** argv) {
     printf("totalThreads == %3u, numBlocks == %3u, blockSize == %3u\n",
         totalThreads, numBlocks, blockSize);
 
-    unsigned int *hostX =
-        (unsigned int*)malloc(sizeof(unsigned int) * totalThreads);
-    unsigned int *hostY =
-        (unsigned int*)malloc(sizeof(unsigned int) * totalThreads);
-    unsigned int *hostOut =
-        (unsigned int*)malloc(sizeof(unsigned int) * totalThreads);
+    int *hostX =
+        (int*)malloc(sizeof(int) * totalThreads);
+    int *hostY =
+        (int*)malloc(sizeof(int) * totalThreads);
+    int *hostOut =
+        (int*)malloc(sizeof(int) * totalThreads);
 
     printf("Setting host values...\n");
     srand(time(NULL));
@@ -71,26 +90,51 @@ int main(int argc, char** argv) {
         hostOut[i] = 0;
     }
 
-    unsigned int *x;
-    unsigned int *y;
-    unsigned int *out;
+    int *x;
+    int *y;
+    int *out;
 
     printf("cudaMalloc...\n");
-    cudaMalloc((void**)&x, totalThreads * sizeof(unsigned int));
-    cudaMalloc((void**)&y, totalThreads * sizeof(unsigned int));
-    cudaMalloc((void**)&out, totalThreads * sizeof(unsigned int));
+    cudaMalloc((void**)&x, totalThreads * sizeof(int));
+    cudaMalloc((void**)&y, totalThreads * sizeof(int));
+    cudaMalloc((void**)&out, totalThreads * sizeof(int));
 
     printf("cudaMemcpy...\n");
-    cudaMemcpy(x, hostX, totalThreads * sizeof(unsigned int),
+    cudaMemcpy(x, hostX, totalThreads * sizeof(int),
             cudaMemcpyHostToDevice);
-    cudaMemcpy(y, hostY, totalThreads * sizeof(unsigned int),
+    cudaMemcpy(y, hostY, totalThreads * sizeof(int),
             cudaMemcpyHostToDevice);
 
-    printf("Executing \"add\"...\n");
-    add<<<numBlocks, totalThreads>>>(x, y, out);
+    switch (fn) {
+    case MFN_ADD:
+        printf("Executing \"add\"...\n");
+        add<<<numBlocks, totalThreads>>>(x, y, out);
+        break;
+    case MFN_SUB:
+        printf("Executing \"sub\"...\n");
+        subtract<<<numBlocks, totalThreads>>>(x, y, out);
+        break;
+    case MFN_MUL:
+        printf("Executing \"mul\"...\n");
+        mult<<<numBlocks, totalThreads>>>(x, y, out);
+        break;
+    case MFN_MOD:
+        printf("Executing \"mod\"...\n");
+        mod<<<numBlocks, totalThreads>>>(x, y, out);
+        break;
+    default:
+        printf("ERROR: Invalid state\n");
+        cudaFree(x);
+        cudaFree(y);
+        cudaFree(out);
+        free(hostX);
+        free(hostY);
+        free(hostOut);
+        return 1;
+    }
 
     printf("Copying result to host...\n");
-    cudaMemcpy(hostOut, out, totalThreads * sizeof(unsigned int),
+    cudaMemcpy(hostOut, out, totalThreads * sizeof(int),
             cudaMemcpyDeviceToHost);
 
     printf("Freeing device memory...\n");
@@ -99,7 +143,7 @@ int main(int argc, char** argv) {
     cudaFree(out);
 
     for(unsigned int j = 0; j < totalThreads / 4; ++j) {
-        printf("%3u: %4u\t%3u: %4u\t%3u: %4u\t %3u: %4u\n",
+        printf("%3u: %4d\t%3u: %4d\t%3u: %4d\t %3u: %4d\n",
             j*4, hostOut[j*4],
             1+j*4,hostOut[1+j*4],
             2+j*4,hostOut[2+j*4],
