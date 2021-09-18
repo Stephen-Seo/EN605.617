@@ -51,12 +51,18 @@ int main(int argc, char** argv) {
     if (argc >= 4) {
         if (argv[3][0] == 'a') {
             fn = MFN_ADD;
+            printf("Using \"add\" fn\n");
         } else if (argv[3][0] == 's') {
             fn = MFN_SUB;
+            printf("Using \"subtract\" fn\n");
         } else if (argv[3][0] == 'm') {
             fn = MFN_MUL;
+            printf("Using \"multiply\" fn\n");
         } else if (argv[3][0] == 'o') {
             fn = MFN_MOD;
+            printf("Using \"modulus\" fn\n");
+        } else {
+            printf("Invalid third argument, using \"add\" fn by default\n");
         }
     }
 
@@ -87,7 +93,8 @@ int main(int argc, char** argv) {
     for(unsigned int i = 0; i < totalThreads; ++i) {
         hostX[i] = i;
         hostY[i] = rand() % 4;
-        hostOut[i] = 0;
+        // hostOut will be overwritten by data output from CUDA
+        //hostOut[i] = 0;
     }
 
     int *x;
@@ -142,12 +149,31 @@ int main(int argc, char** argv) {
     cudaFree(y);
     cudaFree(out);
 
-    for(unsigned int j = 0; j < totalThreads / 4; ++j) {
-        printf("%3u: %4d\t%3u: %4d\t%3u: %4d\t %3u: %4d\n",
-            j*4, hostOut[j*4],
-            1+j*4,hostOut[1+j*4],
-            2+j*4,hostOut[2+j*4],
-            3+j*4,hostOut[3+j*4]);
+    for(unsigned int j = 0; j <= totalThreads / 4; ++j) {
+        if (j * 4 < totalThreads) {
+            printf("%4u: %4d\t", j * 4, hostOut[j * 4]);
+            if (1 + j * 4 < totalThreads) {
+                printf("%4u: %4d\t", 1 + j * 4, hostOut[1 + j * 4]);
+                if (2 + j * 4 < totalThreads) {
+                    printf("%4u: %4d\t", 2 + j * 4, hostOut[2 + j * 4]);
+                    if (3 + j * 4 < totalThreads) {
+                        printf("%4u: %4d\n", 3 + j * 4, hostOut[3 + j * 4]);
+                    } else {
+                        printf("\n");
+                        break;
+                    }
+                } else {
+                    printf("\n");
+                    break;
+                }
+            } else {
+                printf("\n");
+                break;
+            }
+        } else {
+            printf("\n");
+            break;
+        }
     }
 
     printf("Freeing host memory...\n");
