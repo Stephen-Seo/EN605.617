@@ -30,13 +30,21 @@ void mod(int *x, int *y, int *out) {
 }
 
 __global__
-void branching_addsub(int *x, int *y, int *out) {
+void branching_mulmod(int *x, int *y, int *out) {
     const unsigned int thread_idx = (blockIdx.x * blockDim.x) + threadIdx.x;
     if (thread_idx % 2 == 0) {
-        out[thread_idx] = x[thread_idx] + y[thread_idx];
+        out[thread_idx] = x[thread_idx] * y[thread_idx];
     } else {
-        out[thread_idx] = x[thread_idx] - y[thread_idx];
+        out[thread_idx] = x[thread_idx] % y[thread_idx];
     }
+}
+
+__global__
+void non_branching_mulmod(int *x, int *y, int *out) {
+    const unsigned int thread_idx = (blockIdx.x * blockDim.x) + threadIdx.x;
+    const unsigned int mod_result = thread_idx % 2;
+    out[thread_idx] = x[thread_idx] % y[thread_idx] * mod_result
+        + x[thread_idx] * y[thread_idx] * (1 - mod_result);
 }
 
 enum MathFnToUse {
@@ -44,7 +52,8 @@ enum MathFnToUse {
     MFN_SUB,
     MFN_MUL,
     MFN_MOD,
-    MFN_BRANCHING
+    MFN_BRANCHING,
+    MFN_NON_BRANCHING
 };
 
 bool checkError(cudaError_t cudaError) {
@@ -85,8 +94,12 @@ int main(int argc, char** argv) {
         } else if (argv[3][0] == 'b') {
             fn = MFN_BRANCHING;
             fprintf(stderr, "Using \"branching\" fn\n");
+        } else if (argv[3][0] == 'n') {
+            fn = MFN_NON_BRANCHING;
+            fprintf(stderr, "Using \"non-branching\" fn\n");
         } else {
-            fprintf(stderr, "Invalid third argument, using \"add\" fn by default\n");
+            fprintf(stderr,
+                    "Invalid third argument, using \"add\" fn by default\n");
         }
     }
 
@@ -97,9 +110,10 @@ int main(int argc, char** argv) {
 		++numBlocks;
 		totalThreads = numBlocks*blockSize;
 		
-		fprintf(stderr, "Warning: Total thread count is not evenly divisible by the "
-               "block size\n");
-		fprintf(stderr, "The total number of threads will be rounded up to %d\n",
+		fprintf(stderr, "Warning: Total thread count is not evenly divisible by"
+               " the block size\n");
+		fprintf(stderr,
+                "The total number of threads will be rounded up to %d\n",
                 totalThreads);
 	}
     fprintf(stderr, "totalThreads == %3u, numBlocks == %3u, blockSize == %3u\n",
@@ -192,12 +206,27 @@ int main(int argc, char** argv) {
         fprintf(stderr, "Executing \"branching\" (%u blocks, %u threads)...\n",
                 numBlocks, totalThreads);
         auto start_clock = std::chrono::high_resolution_clock::now();
-        branching_addsub<<<numBlocks, totalThreads>>>(x, y, out);
+        branching_mulmod<<<numBlocks, totalThreads>>>(x, y, out);
         cudaError_t cudaError = cudaDeviceSynchronize();
         auto end_clock = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(
                     end_clock - start_clock);
-        fprintf(stderr, "Duration of \"branching\" nanos: %lld\n", duration.count());
+        fprintf(stderr, "Duration of \"branching\" nanos: %lld\n",
+                duration.count());
+        checkError(cudaError);
+        } break;
+    case MFN_NON_BRANCHING: {
+        fprintf(stderr,
+                "Executing \"non-branching\" (%u blocks, %u threads)...\n",
+                numBlocks, totalThreads);
+        auto start_clock = std::chrono::high_resolution_clock::now();
+        non_branching_mulmod<<<numBlocks, totalThreads>>>(x, y, out);
+        cudaError_t cudaError = cudaDeviceSynchronize();
+        auto end_clock = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                    end_clock - start_clock);
+        fprintf(stderr, "Duration of \"non-branching\" nanos: %lld\n",
+                duration.count());
         checkError(cudaError);
         } break;
     default:
