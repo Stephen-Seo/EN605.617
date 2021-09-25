@@ -4,7 +4,7 @@ SOURCES= \
 	assignment_src/constants.c \
 	assignment_src/helpers.cu \
 	assignment_src/mathexpressions.cu \
-	assignment_src/cypher.cu \
+	assignment_src/cipher.cu \
 	assignment_src/assignment.cu
 
 all: assignment.exe

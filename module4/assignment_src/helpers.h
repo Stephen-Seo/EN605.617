@@ -13,12 +13,12 @@ void hostToDeviceXY(int *hostX, int *hostY, int *deviceX, int *deviceY);
 void deviceToHostOut(int *hostOut, int *deviceOut);
 void printHostOut(int *hostOut);
 
-void cypher_allocAndSetupHostMemory(char **host);
-void cypher_freeHostMemory(char **host);
-void cypher_allocDeviceMemory(char **device);
-void cypher_freeDeviceMemory(char **device);
-void cypher_hostToDevice(char *host, char *device);
-void cypher_deviceToHost(char *host, char *device);
-void cypher_printChars(char *host);
+void cipher_allocAndSetupHostMemory(char **host);
+void cipher_freeHostMemory(char **host);
+void cipher_allocDeviceMemory(char **device);
+void cipher_freeDeviceMemory(char **device);
+void cipher_hostToDevice(char *host, char *device);
+void cipher_deviceToHost(char *host, char *device);
+void cipher_printChars(char *host);
 
 #endif
