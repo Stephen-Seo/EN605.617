@@ -19,9 +19,10 @@ void printHelp() {
     printf("\t--use-cipher-offset <offset>\tuse the specified offset when "
             "running the Caesar Cipher algorithm\n");
     printf("\t--print-results\toutput results of kernel execution\n");
+    printf("\t--enable-timings\ttime usage of paged/pinned algorithms\n");
 }
 
-void runPaged(bool printResults) {
+void runPaged(bool printResults, bool enableTimings) {
     int *hostX;
     int *hostY;
     int *hostOut;
@@ -33,24 +34,49 @@ void runPaged(bool printResults) {
     allocAndSetupHostMemory(&hostX, &hostY, &hostOut);
     allocDeviceMemory(&deviceX, &deviceY, &deviceOut);
 
-    hostToDeviceXY(hostX, hostY, deviceX, deviceY);
+    if (enableTimings) {
+        unsigned long long count = 0;
+        for (unsigned int i = 0; i < 25; ++i) {
+            auto start_clock = std::chrono::high_resolution_clock::now();
 
-    branching_mathexpressions<<<BLOCK_SIZE, TOTAL_THREADS>>>(
-            deviceX,
-            deviceY,
-            deviceOut);
+            hostToDeviceXY(hostX, hostY, deviceX, deviceY);
 
-    deviceToHostOut(hostOut, deviceOut);
+            branching_mathexpressions<<<BLOCK_SIZE, TOTAL_THREADS>>>(
+                    deviceX,
+                    deviceY,
+                    deviceOut);
+
+            deviceToHostOut(hostOut, deviceOut);
+
+            auto end_clock = std::chrono::high_resolution_clock::now();
+            auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>
+                    (end_clock - start_clock);
+            if (i > 4) {
+                printf("Duration of \"paged\" nanos: %lld\n", duration.count());
+                count += duration.count();
+            }
+        }
+        printf("Average of duration nanos: %llu\n", count / 20);
+    } else {
+        hostToDeviceXY(hostX, hostY, deviceX, deviceY);
+
+        branching_mathexpressions<<<BLOCK_SIZE, TOTAL_THREADS>>>(
+                deviceX,
+                deviceY,
+                deviceOut);
+
+        deviceToHostOut(hostOut, deviceOut);
+    }
     freeDeviceMemory(&deviceX, &deviceY, &deviceOut);
 
-    if (printResults) {
+    if (printResults && !enableTimings) {
         printHostOut(hostOut);
     }
 
     freeHostMemory(&hostX, &hostY, &hostOut);
 }
 
-void runPinned(bool printResults) {
+void runPinned(bool printResults, bool enableTimings) {
     int *hostX;
     int *hostY;
     int *hostOut;
@@ -62,17 +88,43 @@ void runPinned(bool printResults) {
     allocAndSetupPinnedMemory(&hostX, &hostY, &hostOut);
     allocDeviceMemory(&deviceX, &deviceY, &deviceOut);
 
-    hostToDeviceXY(hostX, hostY, deviceX, deviceY);
+    if (enableTimings) {
+        unsigned long long count = 0;
+        for (unsigned int i = 0; i < 25; ++i) {
+            auto start_clock = std::chrono::high_resolution_clock::now();
 
-    branching_mathexpressions<<<BLOCK_SIZE, TOTAL_THREADS>>>(
-            deviceX,
-            deviceY,
-            deviceOut);
+            hostToDeviceXY(hostX, hostY, deviceX, deviceY);
 
-    deviceToHostOut(hostOut, deviceOut);
+            branching_mathexpressions<<<BLOCK_SIZE, TOTAL_THREADS>>>(
+                    deviceX,
+                    deviceY,
+                    deviceOut);
+
+            deviceToHostOut(hostOut, deviceOut);
+
+            auto end_clock = std::chrono::high_resolution_clock::now();
+            auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>
+                    (end_clock - start_clock);
+            if (i > 4) {
+                printf("Duration of \"pinned\" nanos: %lld\n",
+                        duration.count());
+                count += duration.count();
+            }
+        }
+        printf("Average of duration nanos: %llu\n", count / 20);
+    } else {
+        hostToDeviceXY(hostX, hostY, deviceX, deviceY);
+
+        branching_mathexpressions<<<BLOCK_SIZE, TOTAL_THREADS>>>(
+                deviceX,
+                deviceY,
+                deviceOut);
+
+        deviceToHostOut(hostOut, deviceOut);
+    }
     freeDeviceMemory(&deviceX, &deviceY, &deviceOut);
 
-    if (printResults) {
+    if (printResults && !enableTimings) {
         printHostOut(hostOut);
     }
 
@@ -147,6 +199,7 @@ int main(int argc, char **argv) {
     bool usePinned = false;
     bool printResults = false;
     bool useCaesarCipher = false;
+    bool enableTimings = false;
     int cipherOffset = 3;
 
     --argc; ++argv;
@@ -184,6 +237,11 @@ int main(int argc, char **argv) {
                 printf("ERROR: --use-cihper-offset specified without offset\n");
                 return 1;
             }
+        } else if (strcmp(argv[0], "--enable-timings") == 0) {
+            enableTimings = true;
+        } else {
+            printf("ERROR: Got invalid argument \"%s\"\n", argv[0]);
+            return 1;
         }
     }
 
@@ -194,11 +252,11 @@ int main(int argc, char **argv) {
 
     if (usePaged) {
         printf("Running \"paged\" algorithm\n");
-        runPaged(printResults);
+        runPaged(printResults, enableTimings);
     }
     if (usePinned) {
         printf("Running \"pinned\" algorithm\n");
-        runPinned(printResults);
+        runPinned(printResults, enableTimings);
     }
     if (useCaesarCipher) {
         printf("Running \"Caesar Cipher\" algorithm\n");
