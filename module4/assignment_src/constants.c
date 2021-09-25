@@ -1,4 +1,7 @@
 #include "constants.h"
 
-const int totalThreads = 512;
-const int blockSize = 128;
+const unsigned int totalThreads = 512;
+const unsigned int blockSize = 128;
+
+const char *cypherPhrase = "SometimesIDreamAboutCheese";
+const unsigned int cypherPhraseSize = 26;
