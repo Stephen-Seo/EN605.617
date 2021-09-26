@@ -259,7 +259,8 @@ int main(int argc, char **argv) {
         runPinned(printResults, enableTimings);
     }
     if (useCaesarCipher) {
-        printf("Running \"Caesar Cipher\" algorithm\n");
+        printf("Running \"Caesar Cipher\" algorithm with offset \"%d\"\n",
+                cipherOffset);
         runCipher(printResults, cipherOffset);
     }
 
