@@ -12,14 +12,14 @@
 
 void printHelp() {
     printf("Usage:\n");
-    printf("\t-h | --help\tprint this usage text\n");
-    printf("\t--use-paged\trun algorithm with paged memory\n");
-    printf("\t--use-pinned\trun algorithm with pinned memory\n");
-    printf("\t--use-cipher\trun Caesar Cipher kernel\n");
-    printf("\t--use-cipher-offset <offset>\tuse the specified offset when "
+    printf("  -h | --help\t\t\tprint this usage text\n");
+    printf("  --use-paged\t\t\trun algorithm with paged memory\n");
+    printf("  --use-pinned\t\t\trun algorithm with pinned memory\n");
+    printf("  --use-cipher\t\t\trun Caesar Cipher kernel\n");
+    printf("  --use-cipher-offset <offset>\tuse the specified offset when "
             "running the Caesar Cipher algorithm\n");
-    printf("\t--print-results\toutput results of kernel execution\n");
-    printf("\t--enable-timings\ttime usage of paged/pinned algorithms\n");
+    printf("  --print-results\t\toutput results of kernel execution\n");
+    printf("  --enable-timings\t\ttime usage of paged/pinned algorithms\n");
 }
 
 void runPaged(bool printResults, bool enableTimings) {
