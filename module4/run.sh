@@ -2,8 +2,8 @@
 
 function print_help() {
     echo "Usage:"
-    echo "  -a          run paged memory algorithm"
-    echo "  -i          run pinned memory algorithm"
+    echo "  -a          run paged memory algorithm (use with \"-p\" or \"-t\")"
+    echo "  -i          run pinned memory algorithm (use with \"-p\" or \"-t\")"
     echo "  -p          enable printing result output"
     echo "  -t          enable timings when running paged/pinned"
     echo "  -c          run caesar cipher algorithm (using \"-p\" is advised)"
