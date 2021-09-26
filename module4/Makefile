@@ -10,7 +10,7 @@ SOURCES= \
 all: assignment.exe
 
 assignment.exe: $(SOURCES)
-	$(NVCC) -g -o assignment.exe $^
+	$(NVCC) -std=c++11 -g -o assignment.exe $^
 
 .PHONY: clean
 
