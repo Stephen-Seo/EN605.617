@@ -61,13 +61,13 @@ __global__ void const_test_gpu_const(u32 * const data, const u32 num_elements)
 	}
 }
 
-__host__ void wait_exit(void)
-{
-	char ch;
-
-	printf("\nPress any key to exit");
-	ch = getchar();
-}
+//__host__ void wait_exit(void)
+//{
+//	char ch;
+//
+//	printf("\nPress any key to exit");
+//	ch = getchar();
+//}
 
 __host__ void cuda_error_check(const char * prefix, const char * postfix)
 {
@@ -75,7 +75,7 @@ __host__ void cuda_error_check(const char * prefix, const char * postfix)
 	{
 		printf("\n%s%s%s",prefix,cudaGetErrorString(cudaGetLastError()),postfix);
 		cudaDeviceReset();
-		wait_exit();
+		//wait_exit();
 		exit(1);
 	}
 }
@@ -173,7 +173,7 @@ __host__ void gpu_kernel(void)
 		cudaDeviceReset();
 		printf("\n");
 	}
-	wait_exit();
+	//wait_exit();
 }
 
 __host__ __device__ unsigned int bitreverse(unsigned int number) {
@@ -229,8 +229,9 @@ void execute_gpu_functions()
  * Host function that prepares data array and passes it to the CUDA kernel.
  */
 int main(void) {
-	execute_host_functions();
+	//execute_host_functions();
 	execute_gpu_functions();
+    gpu_kernel();
 
 	return 0;
 }
