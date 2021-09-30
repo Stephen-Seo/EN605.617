@@ -109,6 +109,8 @@ __host__ void gpu_kernel(void) {
 					cudaEventElapsedTime(&delta_time1, kernel_start1,
 							kernel_stop1);
 
+            cudaEventRecord(kernel_start2, 0);
+
 			const_test_gpu_const<<<num_blocks, num_threads>>>(data_gpu,
 					num_elements);
 
@@ -208,8 +210,9 @@ void execute_gpu_functions()
  */
 int main(void) {
 
-	execute_host_functions();
+	//execute_host_functions();
 	execute_gpu_functions();
+    gpu_kernel();
 
 	return 0;
 }
