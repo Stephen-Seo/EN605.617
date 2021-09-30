@@ -1,12 +1,21 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <time.h>
 
 typedef unsigned short int u16;
 typedef unsigned int u32;
 
-#define NUM_ELEMENTS 2048
+#define NUM_ELEMENTS 256
 
 #define MAX_NUM_LISTS 16
+
+void checkError() {
+	cudaError_t errorValue = cudaGetLastError();
+	if (errorValue != cudaSuccess) {
+		printf("CUDA ERROR: %s\n", cudaGetErrorString(errorValue));
+	}
+}
 
 __host__ void cpu_sort(u32 * const data, const u32 num_elements)
 {
@@ -48,53 +57,6 @@ __host__ void cpu_sort(u32 * const data, const u32 num_elements)
 }
 
 __device__ void radix_sort(u32 * const sort_tmp,
-				const u32 num_lists,
-				const u32 num_elements,
-				const u32 tid,
-				u32 * const sort_tmp_0,
-				u32 * const sort_tmp_1)
-{
-	//Sort into num_list, listd
-	//Apply radix sort on 32 bits of data
-	for(u32 bit=0;bit<32;bit++)
-	{
-		u32 base_cnt_0 = 0;
-		u32 base_cnt_1 = 0;
-	
-		for(u32 i=0; i<num_elements; i+=num_lists)
-		{
-			const u32 elem = sort_tmp[i+tid];
-			const u32 bit_mask = (1 << bit);
-			if((elem & bit_mask) > 0)
-			{
-				sort_tmp_1[base_cnt_1+tid] = elem;
-				base_cnt_1+=num_lists;
-			}
-			else
-			{
-				sort_tmp_0[base_cnt_0+tid] = elem;
-				base_cnt_0+=num_lists;
-			}
-		}
-		
-		// Copy data back to source - first the zero list
-		for(u32 i=0;i<base_cnt_0;i+=num_lists)
-		{
-			sort_tmp[i+tid] = sort_tmp_0[i+tid];
-		}
-		
-		//Copy data back to source - then the one list
-		for(u32 i=0;i<base_cnt_1; i+=num_lists)
-		{
-			sort_tmp[base_cnt_0+i+tid] = sort_tmp_1[i+tid];
-		}
-	}
-	__syncthreads();
-}
-
-__device__ void radix_sort2(u32 * const sort_tmp,
-				const u32 num_lists,
-				const u32 num_elements,
 				const u32 tid,
 				u32 * const sort_tmp_0,
 				u32 * const sort_tmp_1)
@@ -107,28 +69,85 @@ __device__ void radix_sort2(u32 * const sort_tmp,
 		u32 base_cnt_0 = 0;
 		u32 base_cnt_1 = 0;
 	
-		for(u32 i=0; i<num_elements; i+=num_lists)
+		for(u32 i=0; i<NUM_ELEMENTS; i+=MAX_NUM_LISTS)
 		{
 			const u32 elem = sort_tmp[i+tid];
 			if((elem & bit_mask) > 0)
 			{
 				sort_tmp_1[base_cnt_1+tid] = elem;
-				base_cnt_1+=num_lists;
+				base_cnt_1+=MAX_NUM_LISTS;
 			}
 			else
 			{
 				sort_tmp_0[base_cnt_0+tid] = elem;
-				base_cnt_0+=num_lists;
+				base_cnt_0+=MAX_NUM_LISTS;
 			}
+		}
+
+		__syncthreads();
+		
+		// Copy data back to source - first the zero list
+		for(u32 i=0;i<base_cnt_0;i+=MAX_NUM_LISTS)
+		{
+			sort_tmp[i+tid] = sort_tmp_0[i+tid];
 		}
 		
 		//Copy data back to source - then the one list
-		for(u32 i=0;i<base_cnt_1; i+=num_lists)
+		for(u32 i=0;i<base_cnt_1; i+=MAX_NUM_LISTS)
 		{
 			sort_tmp[base_cnt_0+i+tid] = sort_tmp_1[i+tid];
 		}
+
+		__syncthreads();
 	}
-	__syncthreads();
+}
+
+__device__ void radix_sort2(u32 * const sort_tmp,
+				const u32 tid,
+				u32 * const sort_tmp_0,
+				u32 * const sort_tmp_1)
+{
+	//Sort into num_list, listd
+	//Apply radix sort on 32 bits of data
+	for(u32 bit=0;bit<32;bit++)
+	{
+		const u32 bit_mask = (1 << bit);
+		u32 base_cnt_0 = 0;
+		u32 base_cnt_1 = 0;
+	
+		for(u32 i=0; i<NUM_ELEMENTS / MAX_NUM_LISTS; ++i)
+		{
+			const u32 elem = sort_tmp[i * MAX_NUM_LISTS + tid];
+			if((elem & bit_mask) > 0)
+			{
+				sort_tmp_1[base_cnt_1 * MAX_NUM_LISTS + tid] = elem;
+				++base_cnt_1;
+			}
+			else
+			{
+				sort_tmp_0[base_cnt_0 * MAX_NUM_LISTS + tid] = elem;
+				++base_cnt_0;
+			}
+		}
+
+		__syncthreads();
+
+		// Copy data back to source - first the zero list
+		for(u32 i = 0; i < base_cnt_0; ++i)
+		{
+			sort_tmp[i * MAX_NUM_LISTS + tid] =
+					sort_tmp_0[i * MAX_NUM_LISTS + tid];
+		}
+		
+		//Copy data back to source - then the one list
+		for(u32 i = 0; i < base_cnt_1; ++i)
+		{
+			sort_tmp[(base_cnt_0 + i) * MAX_NUM_LISTS + tid] =
+					sort_tmp_1[i * MAX_NUM_LISTS + tid];
+		}
+
+		__syncthreads();
+	}
 }
 
 u32 find_min(const u32 * const src_array,
@@ -185,14 +204,13 @@ void merge_array(const u32 * const src_array,
 
 __device__ void copy_data_to_shared(const u32 * const data,
 									u32 * const sort_tmp,
-									const u32 num_lists,
-									const u32 num_elements,
 									const u32 tid)
 {
 	// Copy data into temp store
-	for(u32 i = 0; i<num_elements; i++)
+	for(u32 i = 0; i<NUM_ELEMENTS / MAX_NUM_LISTS; ++i)
 	{
-		sort_tmp[i+tid] = data[i+tid];
+		//printf("%d: put into %d\n", tid, i * MAX_NUM_LISTS + tid);
+		sort_tmp[i * MAX_NUM_LISTS + tid] = data[i * MAX_NUM_LISTS + tid];
 	}
 	__syncthreads();
 }
@@ -201,11 +219,9 @@ __device__ void copy_data_to_shared(const u32 * const data,
 // Uses a single thread for merge
 __device__ void merge_array1(const u32 * const src_array,
 							u32 * const dest_array,
-							const u32 num_lists,
-							const u32 num_elements,
 							const u32 tid)
 {
-	__shared__ u32 list_indexes[MAX_NUM_LISTS];
+	__shared__ char list_indexes[MAX_NUM_LISTS];
 
 	// Multiple threads
 	list_indexes[tid] = 0;
@@ -214,39 +230,28 @@ __device__ void merge_array1(const u32 * const src_array,
 	// Single threaded
 	if(tid == 0)
 	{
-		const u32 num_elements_per_list = (num_elements / num_lists);
+		for (unsigned int dest_idx = 0; dest_idx < NUM_ELEMENTS; ++dest_idx) {
+			unsigned int min = 0xFFFFFFFF;
+			unsigned int idx = 0;
 
-		for (u32 i = 0; i < num_elements; i++)
-		{
-			u32 min_val = 0xFFFFFFFF;
-			u32 min_idx = 0;
-
-			// Iterate over each of the lists
-			for(u32 list=0; list<num_lists;list++)
-			{
-				//If the current list has already been emptied then ignored it
-				if(list_indexes[list] < num_elements_per_list)
-				{
-					const u32 src_idx = list + (list_indexes[list] * num_lists);
-
-					const u32 data = src_array[src_idx];
-
-					if(data <= min_val)
-					{
-						min_val = data;
-						min_idx = list;
-					}
+			for(unsigned int i = 0; i < MAX_NUM_LISTS; ++i) {
+				if (list_indexes[i] >= MAX_NUM_LISTS) {
+					continue;
+				}
+				unsigned int temp_idx = list_indexes[i] * MAX_NUM_LISTS + i;
+				if (src_array[temp_idx] < min) {
+					min = src_array[temp_idx];
+					idx = i;
 				}
 			}
-			list_indexes[min_idx]++;
-			dest_array[i] = min_val;
+
+			dest_array[dest_idx] = min;
+			++list_indexes[idx];
 		}
 	}
 }
 
-__global__ void gpu_sort_array_array(u32 * const data,
-					const u32 num_lists,
-					const u32 num_elements)
+__global__ void gpu_sort_array_array(u32 * const data)
 {
 	const u32 tid = (blockIdx.x * blockDim.x) + threadIdx.x;
 
@@ -254,23 +259,22 @@ __global__ void gpu_sort_array_array(u32 * const data,
 	__shared__ u32 sort_tmp_0[NUM_ELEMENTS];
 	__shared__ u32 sort_tmp_1[NUM_ELEMENTS];
 
-	copy_data_to_shared(data, sort_tmp, num_lists,
-				num_elements, tid);
+	copy_data_to_shared(data, sort_tmp, tid);
 
-	radix_sort2(sort_tmp, num_lists, num_elements, tid, sort_tmp_0, sort_tmp_1);
+	radix_sort2(sort_tmp, tid, sort_tmp_0, sort_tmp_1);
 
-	merge_array1(sort_tmp, data, num_lists, num_elements, tid);
+	//copy_data_to_shared(sort_tmp, data, tid);
+
+	merge_array1(sort_tmp, data, tid);
 }
 
 // Uses multiple threads for merge
 // Deals with multiple identical entries in the data
 __device__ void merge_array6(const u32 * const src_array,
 								u32 * const dest_array,
-								const u32 num_lists,
-								const u32 num_elements,
 								const u32 tid)
 {
-	const u32 num_elements_per_list = (num_elements / num_lists);
+	const u32 num_elements_per_list = (NUM_ELEMENTS / MAX_NUM_LISTS);
 
 	__shared__ u32 list_indexes[MAX_NUM_LISTS];
 	list_indexes[tid] = 0;
@@ -279,7 +283,7 @@ __device__ void merge_array6(const u32 * const src_array,
 	__syncthreads();
 
 	//Iterate over all elements
-	for(u32 i=0; i<num_elements; i++)
+	for(u32 i=0; i<NUM_ELEMENTS; i++)
 	{
 		//Create a value shared with other threads
 		__shared__ u32 min_val;
@@ -294,7 +298,7 @@ __device__ void merge_array6(const u32 * const src_array,
 		{
 			//Work out from the list_index, the index into
 			// the linear array
-			const u32 src_idx = tid + (list_indexes[tid] * num_lists);
+			const u32 src_idx = tid + (list_indexes[tid] * MAX_NUM_LISTS);
 
 			//Read the data from the list for the given
 			// thread
@@ -499,42 +503,63 @@ void execute_host_functions()
 
 }
 
+int cuda_practice_qsort_comp(const void *a, const void *b) {
+	const unsigned int *a_int = (const unsigned int *)a;
+	const unsigned int *b_int = (const unsigned int *)b;
+
+	if (*a_int < *b_int) {
+		return -1;
+	} else if (*a_int > *b_int) {
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
 void execute_gpu_functions()
 {
 	u32 *d = NULL;
-	unsigned int idata[NUM_ELEMENTS], odata[NUM_ELEMENTS];
-	int i;
-	for (i = 0; i < NUM_ELEMENTS; i++){
-		idata[i] = (unsigned int) i;
+	unsigned int idata[NUM_ELEMENTS];
+	unsigned int odata[NUM_ELEMENTS];
+	unsigned int expected_data[NUM_ELEMENTS];
+	srand(time(NULL));
+	for (unsigned int i = 0; i < NUM_ELEMENTS; i++){
+		idata[i] = rand() % NUM_ELEMENTS;
 	}
 
-	cudaMalloc((void** ) &d, sizeof(int) * NUM_ELEMENTS);
+	cudaMalloc((void** ) &d, sizeof(unsigned int) * NUM_ELEMENTS);
 	
 	cudaMemcpy(d, idata, sizeof(unsigned int) * NUM_ELEMENTS, cudaMemcpyHostToDevice);
 
 	//Call GPU kernels
-	gpu_sort_array_array<<<1, NUM_ELEMENTS>>>(d,MAX_NUM_LISTS,NUM_ELEMENTS);
+	gpu_sort_array_array<<<1, MAX_NUM_LISTS>>>(d);
 
 	cudaThreadSynchronize();	// Wait for the GPU launched work to complete
-	cudaGetLastError();
+	checkError();
 	
 	cudaMemcpy(odata, d, sizeof(int) * NUM_ELEMENTS, cudaMemcpyDeviceToHost);
 
-	for (i = 0; i < NUM_ELEMENTS; i++) {
-		printf("Input value: %u, device output: %u\n", idata[i], odata[i]);
+	memcpy(expected_data, idata, sizeof(unsigned int) * NUM_ELEMENTS);
+	qsort(expected_data, NUM_ELEMENTS, sizeof(unsigned int), cuda_practice_qsort_comp);
+
+	for (unsigned int i = 0; i < NUM_ELEMENTS; i++) {
+		printf("%3u: Input value: %3u, device output: %3u, expected: %3u\n",
+				i, idata[i], odata[i], expected_data[i]);
 	}
-	
+
+
 	cudaFree((void* ) d);
 	cudaDeviceReset();
-
 }
 
 /**
  * Host function that prepares data array and passes it to the CUDA kernel.
  */
 int main(void) {
-	execute_host_functions();
+	//execute_host_functions();
 	execute_gpu_functions();
 
 	return 0;
 }
+
+// vim: noet: tabstop=4: cindent
