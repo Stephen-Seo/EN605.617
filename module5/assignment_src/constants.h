@@ -1,0 +1,7 @@
+#ifndef IGPUP_MODULE_5_CONSTANTS_H
+#define IGPUP_MODULE_5_CONSTANTS_H
+
+#define NUM_BLOCKS 256
+#define NUM_THREADS 256
+
+#endif
