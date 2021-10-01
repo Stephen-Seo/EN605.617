@@ -9,7 +9,7 @@
         if (errorValue != cudaSuccess) { \
             std::cout \
                 << __FILE__ << ':' << __LINE__ \
-                << " CUDA ERROR: " \
+                << ' ' << cudaGetErrorName(errorValue) << ": " \
                 << cudaGetErrorString(errorValue) \
                 << std::endl; \
         } \
