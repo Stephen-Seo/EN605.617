@@ -19,12 +19,9 @@ __global__
 void mathexpressions_constant(int *out) {
     const unsigned int thread_idx = (blockIdx.x * blockDim.x) + threadIdx.x;
     const unsigned int subidx = thread_idx % 4;
-    //std::printf("%7d running\n", thread_idx);
 
     if (subidx == 0) {
         out[thread_idx] = const_x[thread_idx] + const_y[thread_idx];
-        //std::printf("%7d: const_x == %7d, const_y == %7d\n",
-        //        thread_idx, const_x[thread_idx], const_y[thread_idx]);
     } else if (subidx == 1) {
         out[thread_idx] = const_x[thread_idx] - const_y[thread_idx];
     } else if (subidx == 2) {
