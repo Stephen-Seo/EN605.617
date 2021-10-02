@@ -132,8 +132,10 @@ __host__ void run_shared(bool printOutputs, bool useTimings) {
             mathexpressions_shared<<<NUM_BLOCKS, NUM_THREADS>>>(deviceX,
                                                                 deviceY,
                                                                 deviceOut);
+            cudaDeviceSynchronize();
             auto endClock = std::chrono::high_resolution_clock::now();
 
+            // warmup for first 5 iterations, time the remaining 20
             if (i > 4) {
                 duration = std::chrono::duration_cast<std::chrono::nanoseconds>
                     (endClock - startClock);
@@ -183,8 +185,10 @@ __host__ void run_constant(bool printOutputs, bool useTimings) {
             auto startClock = std::chrono::high_resolution_clock::now();
             // run kernel
             mathexpressions_constant<<<NUM_BLOCKS, NUM_THREADS>>>(deviceOut);
+            cudaDeviceSynchronize();
             auto endClock = std::chrono::high_resolution_clock::now();
 
+            // warmup for first 5 iterations, time the remaining 20
             if (i > 4) {
                 duration = std::chrono::duration_cast<std::chrono::nanoseconds>
                     (endClock - startClock);
