@@ -219,16 +219,18 @@ __host__ void run_constant(bool printOutputs, bool useTimings) {
 
 int main(int argc, char **argv) {
     Args args;
+
     if (args.parseArgs(argc, argv)) {
+        // help usage was printed, just return success here
         return 0;
     } else if (args.runShared) {
-        std::cout << "Running shared-memory algorithm" << std::endl;
+        std::cout << "Running Shared-memory algorithm" << std::endl;
         run_shared(args.enablePrintOutput, args.enableTimings);
     } else if (args.runConstant) {
-        std::cout << "Running constant-memory algorithm" << std::endl;
+        std::cout << "Running Constant-memory algorithm" << std::endl;
         run_constant(args.enablePrintOutput, args.enableTimings);
     } else {
-        std::cout << "shared or constant algorithm not specified.\n";
+        std::cout << "Shared or Constant algorithm not specified\n";
         Args::displayHelp();
     }
 
