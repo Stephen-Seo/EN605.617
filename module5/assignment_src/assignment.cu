@@ -1,6 +1,9 @@
 #include <cstdlib>
 #include <cstdio>
+#include <iostream>
+#include <chrono>
 
+#include "arg_parse.h"
 #include "mathexpressions.h"
 #include "constants.h"
 #include "helpers.h"
@@ -108,7 +111,7 @@ __host__ void prepare_constant_data(int **out, int **deviceOut) {
     CHECK_ERROR();
 }
 
-__host__ void run_shared() {
+__host__ void run_shared(bool printOutputs, bool useTimings) {
     int *x;
     int *y;
     int *out;
@@ -119,15 +122,42 @@ __host__ void run_shared() {
 
     prepare_data(&x, &y, &out, &deviceX, &deviceY, &deviceOut);
 
-    // run kernel
-    mathexpressions_shared<<<NUM_BLOCKS, NUM_THREADS>>>(deviceX,
-                                                        deviceY,
-                                                        deviceOut);
-    CHECK_ERROR();
+    if (useTimings) {
+        unsigned long long count = 0;
+        std::chrono::nanoseconds duration;
 
-    device_to_host_out(out, deviceOut);
+        for (unsigned int i = 0; i < 25; ++i) {
+            auto startClock = std::chrono::high_resolution_clock::now();
+            // run kernel
+            mathexpressions_shared<<<NUM_BLOCKS, NUM_THREADS>>>(deviceX,
+                                                                deviceY,
+                                                                deviceOut);
+            auto endClock = std::chrono::high_resolution_clock::now();
 
-    print_results(out);
+            if (i > 4) {
+                duration = std::chrono::duration_cast<std::chrono::nanoseconds>
+                    (endClock - startClock);
+                std::printf("Shared iteration %3u took %9llu ns\n",
+                        i - 5, duration.count());
+                count += duration.count();
+            }
+        }
+
+        std::cout << "Average of 20 runs == " << (count / 20) << " ns"
+            << std::endl;
+    } else {
+        // run kernel
+        mathexpressions_shared<<<NUM_BLOCKS, NUM_THREADS>>>(deviceX,
+                                                            deviceY,
+                                                            deviceOut);
+        CHECK_ERROR();
+
+        device_to_host_out(out, deviceOut);
+
+        if (printOutputs) {
+            print_results(out);
+        }
+    }
 
     // free data
     cudaFree(deviceOut);
@@ -138,20 +168,45 @@ __host__ void run_shared() {
     free(x);
 }
 
-__host__ void run_constant() {
+__host__ void run_constant(bool printOutputs, bool useTimings) {
     int *out;
 
     int *deviceOut;
 
     prepare_constant_data(&out, &deviceOut);
 
-    // run kernel
-    mathexpressions_constant<<<NUM_BLOCKS, NUM_THREADS>>>(deviceOut);
-    CHECK_ERROR();
+    if (useTimings) {
+        unsigned long long count = 0;
+        std::chrono::nanoseconds duration;
 
-    device_to_host_out(out, deviceOut);
+        for (unsigned int i = 0; i < 25; ++i) {
+            auto startClock = std::chrono::high_resolution_clock::now();
+            // run kernel
+            mathexpressions_constant<<<NUM_BLOCKS, NUM_THREADS>>>(deviceOut);
+            auto endClock = std::chrono::high_resolution_clock::now();
 
-    print_results(out);
+            if (i > 4) {
+                duration = std::chrono::duration_cast<std::chrono::nanoseconds>
+                    (endClock - startClock);
+                std::printf("Constant iteration %3u took %9llu ns\n",
+                        i - 5, duration.count());
+                count += duration.count();
+            }
+        }
+
+        std::cout << "Average of 20 runs == " << (count / 20) << " ns"
+            << std::endl;
+    } else {
+        // run kernel
+        mathexpressions_constant<<<NUM_BLOCKS, NUM_THREADS>>>(deviceOut);
+        CHECK_ERROR();
+
+        device_to_host_out(out, deviceOut);
+
+        if (printOutputs) {
+            print_results(out);
+        }
+    }
 
     // free data
     cudaFree(deviceOut);
@@ -159,8 +214,19 @@ __host__ void run_constant() {
 }
 
 int main(int argc, char **argv) {
-    //run_shared();
-    run_constant();
+    Args args;
+    if (args.parseArgs(argc, argv)) {
+        return 0;
+    } else if (args.runShared) {
+        std::cout << "Running shared-memory algorithm" << std::endl;
+        run_shared(args.enablePrintOutput, args.enableTimings);
+    } else if (args.runConstant) {
+        std::cout << "Running constant-memory algorithm" << std::endl;
+        run_constant(args.enablePrintOutput, args.enableTimings);
+    } else {
+        std::cout << "shared or constant algorithm not specified.\n";
+        Args::displayHelp();
+    }
 
     return 0;
 }

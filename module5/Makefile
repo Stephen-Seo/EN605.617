@@ -2,7 +2,8 @@ NVCC?=/usr/bin/env nvcc
 
 SOURCES = \
 	assignment_src/assignment.cu \
-	assignment_src/mathexpressions.cu
+	assignment_src/mathexpressions.cu \
+	assignment_src/arg_parse.cpp
 
 all: assignment.exe
 
