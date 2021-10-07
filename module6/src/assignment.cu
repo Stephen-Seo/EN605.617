@@ -28,7 +28,8 @@ void runTimings(bool usingRegisterAlgorithm,
         if (i > 4) {
             duration = std::chrono::duration_cast<std::chrono::nanoseconds>
                     (endClock - startClock);
-            std::printf("Register iteration %2u took %7llu ns\n",
+            std::printf("%s iteration %2u took %7llu ns\n",
+                    (usingRegisterAlgorithm ? "Register" : "Shared"),
                     i - 5, duration.count());
             count += duration.count();
         }
