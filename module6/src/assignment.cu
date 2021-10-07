@@ -1,10 +1,42 @@
 #include <iostream>
 #include <cstdio>
+#include <chrono>
 
 #include "arg_parse.h"
 #include "constants.h"
 #include "helpers.h"
 #include "mathexpressions.h"
+
+void runTimings(bool usingRegisterAlgorithm,
+                int *deviceX, int *deviceY, int *deviceOut) {
+    unsigned long long count = 0;
+    std::chrono::nanoseconds duration;
+
+    for (unsigned int i = 0; i < 25; ++i) {
+        auto startClock = std::chrono::high_resolution_clock::now();
+        if (usingRegisterAlgorithm) {
+            mathexpressions_registers<<<NUM_BLOCKS, NUM_THREADS>>>(deviceX,
+                                                                   deviceY,
+                                                                   deviceOut);
+        } else {
+            mathexpressions_shared<<<NUM_BLOCKS, NUM_THREADS>>>(deviceX,
+                                                                deviceY,
+                                                                deviceOut);
+        }
+        cudaDeviceSynchronize();
+        auto endClock = std::chrono::high_resolution_clock::now();
+        if (i > 4) {
+            duration = std::chrono::duration_cast<std::chrono::nanoseconds>
+                    (endClock - startClock);
+            std::printf("Register iteration %2u took %7llu ns\n",
+                    i - 5, duration.count());
+            count += duration.count();
+        }
+    }
+
+    std::cout << "Average of 20 runs == " << (count / 20) << " ns"
+        << std::endl;
+}
 
 void runKernel(bool usingRegisterAlgorithm, bool printOutput, bool doTimings) {
     int *hostX;
@@ -20,13 +52,23 @@ void runKernel(bool usingRegisterAlgorithm, bool printOutput, bool doTimings) {
     Helpers::hostToDeviceXY(hostX, hostY, deviceX, deviceY);
 
     if (usingRegisterAlgorithm) {
-        mathexpressions_registers<<<NUM_BLOCKS, NUM_THREADS>>>(deviceX,
-                                                               deviceY,
-                                                               deviceOut);
+        if (doTimings) {
+            // time the register-using algorithm
+            runTimings(true, deviceX, deviceY, deviceOut);
+        } else {
+            mathexpressions_registers<<<NUM_BLOCKS, NUM_THREADS>>>(deviceX,
+                                                                   deviceY,
+                                                                   deviceOut);
+        }
     } else {
-        mathexpressions_shared<<<NUM_BLOCKS, NUM_THREADS>>>(deviceX,
-                                                            deviceY,
-                                                            deviceOut);
+        if (doTimings) {
+            // time the shared-memory-using algorithm
+            runTimings(false, deviceX, deviceY, deviceOut);
+        } else {
+            mathexpressions_shared<<<NUM_BLOCKS, NUM_THREADS>>>(deviceX,
+                                                                deviceY,
+                                                                deviceOut);
+        }
     }
     CHECK_ERROR();
     cudaDeviceSynchronize();
@@ -38,8 +80,8 @@ void runKernel(bool usingRegisterAlgorithm, bool printOutput, bool doTimings) {
     Helpers::freeDeviceMemory(&deviceX, &deviceY, &deviceOut);
     CHECK_ERROR();
 
-    if (printOutput) {
-        for(unsigned int i = 0; i < NUM_BLOCKS * NUM_THREADS; ++i) {
+    if (printOutput && !doTimings) {
+        for (unsigned int i = 0; i < NUM_BLOCKS * NUM_THREADS; ++i) {
             if (i % 4 < 3 && i + 1 < NUM_BLOCKS * NUM_THREADS) {
                 std::printf("%7d ", hostOut[i]);
             } else {
