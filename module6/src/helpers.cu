@@ -6,13 +6,16 @@
 #include "constants.h"
 
 __host__
-void Helpers::allocateAndPrepareHostMemory(int **hostX, int **hostY, int **hostOut) {
-    (*hostX) = (int*)malloc(sizeof(int) * NUM_BLOCKS * NUM_THREADS);
-    (*hostY) = (int*)malloc(sizeof(int) * NUM_BLOCKS * NUM_THREADS);
-    (*hostOut) = (int*)malloc(sizeof(int) * NUM_BLOCKS * NUM_THREADS);
+void Helpers::allocateAndPrepareHostMemory(int **hostX,
+                                           int **hostY,
+                                           int **hostOut,
+                                           unsigned int size) {
+    (*hostX) = (int*)malloc(sizeof(int) * size);
+    (*hostY) = (int*)malloc(sizeof(int) * size);
+    (*hostOut) = (int*)malloc(sizeof(int) * size);
 
     std::srand(std::time(nullptr));
-    for (unsigned int i = 0; i < NUM_BLOCKS * NUM_THREADS; ++i) {
+    for (unsigned int i = 0; i < size; ++i) {
         (*hostX)[i] = i;
         (*hostY)[i] = std::rand() % 4;
         (*hostOut)[i] = 0;
@@ -37,13 +40,14 @@ void Helpers::freeHostMemory(int **hostX, int **hostY, int **hostOut) {
 
 __host__
 void Helpers::allocateDeviceMemory(int **deviceX,
-                                  int **deviceY,
-                                  int **deviceOut) {
-    cudaMalloc(deviceX, sizeof(int) * NUM_BLOCKS * NUM_THREADS);
+                                   int **deviceY,
+                                   int **deviceOut,
+                                   unsigned int size) {
+    cudaMalloc(deviceX, sizeof(int) * size);
     CHECK_ERROR();
-    cudaMalloc(deviceY, sizeof(int) * NUM_BLOCKS * NUM_THREADS);
+    cudaMalloc(deviceY, sizeof(int) * size);
     CHECK_ERROR();
-    cudaMalloc(deviceOut, sizeof(int) * NUM_BLOCKS * NUM_THREADS);
+    cudaMalloc(deviceOut, sizeof(int) * size);
     CHECK_ERROR();
 }
 
@@ -70,18 +74,19 @@ void Helpers::freeDeviceMemory(int **deviceX,
 
 __host__
 void Helpers::hostToDeviceXY(int *hostX, int *hostY,
-                             int *deviceX, int *deviceY) {
-    cudaMemcpy(deviceX, hostX, sizeof(int) * NUM_BLOCKS * NUM_THREADS,
+                             int *deviceX, int *deviceY,
+                             unsigned int size) {
+    cudaMemcpy(deviceX, hostX, sizeof(int) * size,
             cudaMemcpyHostToDevice);
     CHECK_ERROR();
-    cudaMemcpy(deviceY, hostY, sizeof(int) * NUM_BLOCKS * NUM_THREADS,
+    cudaMemcpy(deviceY, hostY, sizeof(int) * size,
             cudaMemcpyHostToDevice);
     CHECK_ERROR();
 }
 
 __host__
-void Helpers::deviceToHostOut(int *hostOut, int *deviceOut) {
-    cudaMemcpy(hostOut, deviceOut, sizeof(int) * NUM_BLOCKS * NUM_THREADS,
+void Helpers::deviceToHostOut(int *hostOut, int *deviceOut, unsigned int size) {
+    cudaMemcpy(hostOut, deviceOut, sizeof(int) * size,
             cudaMemcpyDeviceToHost);
     CHECK_ERROR();
 }

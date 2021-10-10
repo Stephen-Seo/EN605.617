@@ -21,6 +21,7 @@ struct Args {
     bool runSharedBasedMemory;
     bool enablePrintOutput;
     bool enableTimings;
+    unsigned int num_blocks;
 };
 
 #endif

@@ -17,19 +17,29 @@
 
 namespace Helpers {
     __host__
-    void allocateAndPrepareHostMemory(int **hostX, int **hostY, int **hostOut);
+    void allocateAndPrepareHostMemory(int **hostX,
+                                      int **hostY,
+                                      int **hostOut,
+                                      unsigned int size);
     __host__
     void freeHostMemory(int **hostX, int **hostY, int **hostOut);
 
     __host__
-    void allocateDeviceMemory(int **deviceX, int **deviceY, int **deviceOut);
+    void allocateDeviceMemory(int **deviceX,
+                              int **deviceY,
+                              int **deviceOut,
+                              unsigned int size);
     __host__
     void freeDeviceMemory(int **deviceX, int **deviceY, int **deviceOut);
 
     __host__
-    void hostToDeviceXY(int *hostX, int *hostY, int *deviceX, int *deviceY);
+    void hostToDeviceXY(int *hostX,
+                        int *hostY,
+                        int *deviceX,
+                        int *deviceY,
+                        unsigned int size);
     __host__
-    void deviceToHostOut(int *hostOut, int *deviceOut);
+    void deviceToHostOut(int *hostOut, int *deviceOut, unsigned int size);
 } // namespace Helper
 
 #endif

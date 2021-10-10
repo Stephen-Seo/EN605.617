@@ -71,7 +71,7 @@ void mathexpressions_shared(const int *x, const int *y, int *out) {
         out_shared[threadIdx.x] = x_shared[threadIdx.x] % y_shared[threadIdx.x];
     }
 
-    // sync here to ensure out_shared is fully populated
+    // sync here to ensure "out_shared" is fully populated
     __syncthreads();
 
     copy_from_shared_out(out, out_shared, thread_idx);

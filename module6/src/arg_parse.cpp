@@ -7,7 +7,8 @@ Args::Args() :
     runRegisterBasedMemory(false),
     runSharedBasedMemory(false),
     enablePrintOutput(false),
-    enableTimings(false)
+    enableTimings(false),
+    num_blocks(0)
 {}
 
 Args::~Args() {}
@@ -31,6 +32,10 @@ bool Args::parseArgs(int argc, char **argv) {
         } else if (std::strcmp(argv[0], "-t") == 0
                 || std::strcmp(argv[0], "--timings") == 0) {
             enableTimings = true;
+        } else if (std::strcmp(argv[0], "--num-blocks") == 0
+                && argc > 1) {
+            num_blocks = std::strtoul(argv[1], nullptr, 10);
+            --argc; ++argv;
         } else {
             std::cout << "Ignoring invalid argument \"" << argv[0] << "\"\n";
         }
@@ -42,11 +47,12 @@ bool Args::parseArgs(int argc, char **argv) {
 
 void Args::displayHelp() {
     std::cout << "Usage:\n"
-        "  -h | --help\t\tprint this help text\n"
-        "  -r | --register\trun algorithm using registers\n"
-        "  -s | --shared\t\trun algorithm using shared memory\n"
-        "  -p | --print-output\tprint result outputs when running algorithms\n"
-        "  -t | --timings\tprint timings\n"
+        "  -h | --help\t\t\tprint this help text\n"
+        "  -r | --register\t\trun algorithm using registers\n"
+        "  -s | --shared\t\t\trun algorithm using shared memory\n"
+        "  -p | --print-output\t\tprint result outputs when running algorithms\n"
+        "  -t | --timings\t\tprint timings\n"
+        "  --num-blocks <blocks>\t\tset the number of blocks to run\n"
         "    Note that -r and -s are mutually exclusive.\n"
         "    If both are specified, -r takes precedence.\n"
         "    Note that -p and -t are mutually exclusive.\n"
