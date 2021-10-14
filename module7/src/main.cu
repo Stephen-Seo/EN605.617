@@ -50,6 +50,7 @@ int main(int argc, char **argv) {
     Helpers::setUpStreamAndEvents(&stream, &event_start, &event_end);
 
     if (args.enableTimings) {
+        // enableTimings is set, time the latter 20 of 25 runs
         float sumMilliseconds = 0.0F;
         float elapsedMilliseconds;
         for (unsigned int i = 0; i < 25; ++i) {
@@ -71,6 +72,7 @@ int main(int argc, char **argv) {
         std::cout << "Average of 20 runs == " << sumMilliseconds / 20.0F
             << " milliseconds" << std::endl;
     } else {
+        // enableTimings is not set, just run normally
         Helpers::asyncMemcpyToDevice(host_a, host_b, device_a, device_b,
                                      stream, event_start,
                                      block_size, thread_size);
@@ -79,6 +81,7 @@ int main(int argc, char **argv) {
         Helpers::asyncMemcpyToHost(host_out, device_out, stream, event_end,
                                    block_size, thread_size);
         if (args.enablePrintOutput) {
+            // enablePrintOutput is set, print the output
             unsigned int size = block_size * thread_size;
             for(unsigned int i = 0; i < size; ++i) {
                 if (i % 4 != 3 && i + 1 != size) {
@@ -88,6 +91,7 @@ int main(int argc, char **argv) {
                 }
             }
         } else {
+            // neither enableTimings nor enablePrintOutput was set
             std::cout << "print-output or timings were not enabled, please "
                 "specify \"-p\" or \"-t\" to get outputs" << std::endl;
             Args::displayHelp();
