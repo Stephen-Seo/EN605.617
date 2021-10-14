@@ -17,6 +17,7 @@ namespace Helpers {
                                 cudaEvent_t event_start,
                                 cudaEvent_t event_end);
 
+    /// This function also records "event_start" before memcpy
     void asyncMemcpyToDevice(int *host_a, int *host_b,
                              int *device_a, int *device_b,
                              cudaStream_t stream, cudaEvent_t event_start,
@@ -26,6 +27,7 @@ namespace Helpers {
                       unsigned int block_size, unsigned int thread_size,
                       cudaStream_t stream);
 
+    /// This function also records "event_end" after memcpy
     void asyncMemcpyToHost(int *host_out, int *device_out,
                            cudaStream_t stream, cudaEvent_t event_end,
                            unsigned int block_size, unsigned int thread_size);
