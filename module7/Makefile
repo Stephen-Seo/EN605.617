@@ -2,7 +2,9 @@ NVCC?=/usr/bin/env nvcc
 
 SOURCES = \
 	src/arg_parse.cpp \
-	src/main.cu
+	src/main.cu \
+	src/kernel.cu \
+	src/helpers.cu
 
 all: assignment7
 
