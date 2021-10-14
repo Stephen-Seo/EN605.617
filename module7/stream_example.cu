@@ -27,7 +27,11 @@ int main ( int argc, char **argv )
   int whichDevice; 
 
   cudaGetDeviceCount( &whichDevice); 
-  cudaGetDeviceProperties( &prop, whichDevice); 
+  if (whichDevice == 0) {
+    printf("No devices\n");
+    return 1;
+  }
+  cudaGetDeviceProperties( &prop, whichDevice - 1);
 
   cudaEvent_t start, stop; 
   float elapsedTime; 
