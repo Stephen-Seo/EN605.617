@@ -69,7 +69,7 @@ int main(int argc, char **argv) {
             }
         }
         std::cout << "Average of 20 runs == " << sumMilliseconds / 20.0F
-            << std::endl;
+            << " milliseconds" << std::endl;
     } else {
         Helpers::asyncMemcpyToDevice(host_a, host_b, device_a, device_b,
                                      stream, event_start,
@@ -90,6 +90,7 @@ int main(int argc, char **argv) {
         } else {
             std::cout << "print-output or timings were not enabled, please "
                 "specify \"-p\" or \"-t\" to get outputs" << std::endl;
+            Args::displayHelp();
         }
     }
 
