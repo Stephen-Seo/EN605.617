@@ -13,9 +13,13 @@ void runCudaRandKernel(unsigned int num_blocks,
                        bool print_output,
                        bool do_timings) {
     if (!print_output && !do_timings) {
-        puts("ERROR: print-output or timings not specified, not running Rand");
+        std::puts("ERROR: print-output or timings not specified, not running "
+                "Rand");
         return;
     }
+
+    std::printf("Running Rand with %u num_blocks and %u num_threads\n",
+            num_blocks, num_threads);
 
     curandState_t *states;
     unsigned int *kernel_output;
@@ -60,9 +64,14 @@ void runCudaBlasKernel(unsigned int final_width,
                        bool print_output,
                        bool do_timings) {
     if (!print_output && !do_timings) {
-        puts("ERROR: print-output or timings not specified, not running BLAS");
+        std::puts("ERROR: print-output or timings not specified, not running "
+                "BLAS");
         return;
     }
+
+    std::printf("Running BLAS with final_width == %u, final_height == %u, and "
+            "in_between == %u\n",
+            final_width, final_height, in_between);
 
     float *first_matrix_host;
     float *second_matrix_host;
@@ -72,19 +81,19 @@ void runCudaBlasKernel(unsigned int final_width,
     float *result_matrix_device;
 
     helpers::InitMatrices(&first_matrix_host,
-                         &second_matrix_host,
-                         &result_matrix_host,
-                         &first_matrix_device,
-                         &second_matrix_device,
-                         &result_matrix_device,
-                         final_width,
-                         final_height,
-                         in_between);
+                          &second_matrix_host,
+                          &result_matrix_host,
+                          &first_matrix_device,
+                          &second_matrix_device,
+                          &result_matrix_device,
+                          final_width,
+                          final_height,
+                          in_between);
 
     if (print_output) {
-        printf("Matrix A:\n");
+        std::printf("Matrix A:\n");
         helpers::PrintMatrix(first_matrix_host, in_between, final_height);
-        printf("Matrix B:\n");
+        std::printf("Matrix B:\n");
         helpers::PrintMatrix(second_matrix_host, final_width, in_between);
     }
 
@@ -110,16 +119,16 @@ void runCudaBlasKernel(unsigned int final_width,
                     final_height);          // leading dimesnion of 2d array (C)
 
     if (print_output) {
-        printf("Matrix C:\n");
+        std::printf("Matrix C:\n");
         helpers::PrintMatrix(result_matrix_host, final_width, final_height);
     }
 
     helpers::FreeMatrices(&first_matrix_host,
-                         &second_matrix_host,
-                         &result_matrix_host,
-                         &first_matrix_device,
-                         &second_matrix_device,
-                         &result_matrix_device);
+                          &second_matrix_host,
+                          &result_matrix_host,
+                          &first_matrix_device,
+                          &second_matrix_device,
+                          &result_matrix_device);
 
 }
 
