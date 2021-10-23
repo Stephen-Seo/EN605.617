@@ -9,7 +9,7 @@ SOURCES= \
 all: assignment8
 
 assignment8: $(SOURCES)
-	$(NVCC) -g -o assignment8 -lcudart -lcurand -lcuda -std=c++11 $(SOURCES)
+	$(NVCC) -g -o assignment8 -lcudart -lcurand -lcublas -lcuda -std=c++11 $(SOURCES)
 
 .PHONY: clean
 

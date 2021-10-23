@@ -20,8 +20,12 @@ struct Args {
     bool enable_print_output;
     bool enable_timings;
     bool run_cuda_rand;
+    bool run_cuda_blas;
     unsigned int num_blocks;
     unsigned int num_threads;
+    unsigned int num_blas_w;
+    unsigned int num_blas_h;
+    unsigned int num_blas_i;
 };
 
 #endif
