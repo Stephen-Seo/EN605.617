@@ -33,7 +33,7 @@ void runCudaRandKernel(unsigned int num_blocks,
                    num_blocks * num_threads * sizeof(unsigned int),
                    cudaMemcpyDeviceToHost);
         for (unsigned int i = 0; i < num_blocks * num_threads; ++i) {
-            if (i + 1 < num_blocks * num_threads && i % 4 != 3) {
+            if (i + 1 < num_blocks * num_threads && i % 12 != 11) {
                 std::printf("%4u ", host_output[i]);
             } else {
                 std::printf("%4u\n", host_output[i]);
