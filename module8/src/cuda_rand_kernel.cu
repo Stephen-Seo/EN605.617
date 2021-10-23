@@ -3,7 +3,9 @@
 #include "constants.h"
 
 __global__
-void GenerateRandom(curandState_t *state, unsigned int seed, unsigned int *out) {
+void GenerateRandom(curandState_t *state,
+                    unsigned int seed,
+                    unsigned int *out) {
     const unsigned int thread_idx = (blockIdx.x * blockDim.x) + threadIdx.x;
 
     curand_init(seed,
