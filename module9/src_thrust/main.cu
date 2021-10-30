@@ -139,6 +139,7 @@ int main(int argc, char **argv) {
     std::cout << "ERROR: print_output and timings not enabled! Pick one to get"
                  " output"
               << std::endl;
+    Args::DisplayHelp();
     return 1;
   }
 
