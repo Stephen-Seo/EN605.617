@@ -20,6 +20,10 @@ struct Args {
   bool enable_print_output;
   bool enable_timings;
   unsigned int thrust_size;
+  bool do_addition;
+  bool do_subtraction;
+  bool do_multiplication;
+  bool do_modulus;
 };
 
 #endif
