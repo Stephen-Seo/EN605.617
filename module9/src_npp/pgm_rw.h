@@ -24,8 +24,8 @@ class PGMFile {
   bool LoadImage(const char *filename);
   bool LoadImage(const std::string &filename);
 
-  bool SaveImage(const char *filename, bool overwrite = false);
-  bool SaveImage(const std::string &filename, bool overwrite = false);
+  bool SaveImage(const char *filename, bool overwrite = false) const;
+  bool SaveImage(const std::string &filename, bool overwrite = false) const;
 
   bool IsLoaded() const;
 

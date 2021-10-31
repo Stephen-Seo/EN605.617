@@ -62,22 +62,24 @@ bool PGMFile::LoadImage(const std::string &filename) {
   return IsLoaded();
 }
 
-bool PGMFile::SaveImage(const char *filename, bool overwrite) {
-  if (!IsLoaded()) {
-    return false;
-  }
+bool PGMFile::SaveImage(const char *filename, bool overwrite) const {
   return SaveImage(std::string(filename), overwrite);
 }
 
-bool PGMFile::SaveImage(const std::string &filename, bool overwrite) {
+bool PGMFile::SaveImage(const std::string &filename, bool overwrite) const {
   if (!IsLoaded()) {
+    std::cout << "ERROR: Cannot SaveImage, internal data is not loaded"
+              << std::endl;
     return false;
   }
 
   if (image_data_.size() % this->width != 0) {
     // Somehow invalid data size, this shouldn't happen
-    image_data_.clear();
-    this->width = 0;
+    // const function cannot modify members
+    // image_data_.clear();
+    // this->width = 0;
+    std::cout << "ERROR: Cannot SaveImage, internal data is invalid"
+              << std::endl;
     return false;
   }
 
