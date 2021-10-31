@@ -16,7 +16,7 @@ thrust_assignment9: $(THRUST_SOURCES)
 	$(NVCC) -o thrust_assignment9 -g -lcuda -lcudart $^
 
 npp_assignment9: $(NPP_SOURCES)
-	$(NVCC) -o npp_assignment9 -g -lcuda -lcudart $^
+	$(NVCC) -o npp_assignment9 -g -lcuda -lcudart -lnppc -lnppig $^
 
 .PHONY: clean
 
