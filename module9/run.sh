@@ -31,7 +31,8 @@ pushd "$(dirname "$0")" &>/dev/null
 
 if [[ "$1" == "thrust_test_harness" ]]; then
     make thrust_assignment9
-    echo -e "Thrust test harness: first test\n  size 1024 and 2048 of each operation"
+    echo -e "Thrust test harness: first test"
+    echo "  size 1024 and $((2 ** 20)) of each operation"
     echo -e "\ntesting with size 1024...\n"
     ./thrust_assignment9 -s 1024 -t -a -u -m -o | grep Average
     echo -e "\ntesting with size $((2 ** 20))...\n"
