@@ -2,7 +2,8 @@ NVCC ?=/usr/bin/env nvcc -std=c++11
 
 THRUST_SOURCES = \
 	src_thrust/arg_parse.cpp \
-	src_thrust/main.cu
+	src_thrust/main.cu \
+	src_thrust/thrust_operations.cu
 
 all: thrust_assignment9
 

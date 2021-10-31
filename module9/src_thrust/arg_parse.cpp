@@ -69,5 +69,6 @@ void Args::DisplayHelp() {
                "  -m | --mult\t\t\tRun multiply algorithm\n"
                "  -o | --mod\t\t\tRun modulus algorithm\n"
                "    Note that -p and -t are mutually exclusive.\n"
-               "    If both are specified, -t takes precedence.\n";
+               "    If both are specified, -t takes precedence.\n"
+               "\n    If using run.sh, prepend flag(s) with \"thrust\"\n";
 }
