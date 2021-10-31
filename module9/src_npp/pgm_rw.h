@@ -31,7 +31,13 @@ class PGMFile {
 
   static bool FilenameEndsWithPGM(const std::string &filename);
 
-  const std::vector<std::uint8_t> &GetImageData() const;
+  const std::vector<std::uint8_t> &GetImageVector() const;
+  const std::uint8_t *GetImageData() const;
+  std::uint8_t *GetImageData();
+
+  unsigned int GetSize() const;
+  unsigned int GetWidth() const;
+  unsigned int GetHeight() const;
 
  private:
   std::vector<std::uint8_t> image_data_;

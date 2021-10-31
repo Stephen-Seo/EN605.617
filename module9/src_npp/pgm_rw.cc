@@ -152,8 +152,23 @@ bool PGMFile::FilenameEndsWithPGM(const std::string &filename) {
   return true;
 }
 
-const std::vector<std::uint8_t> &PGMFile::GetImageData() const {
+const std::vector<std::uint8_t> &PGMFile::GetImageVector() const {
   return image_data_;
+}
+
+const std::uint8_t *PGMFile::GetImageData() const { return image_data_.data(); }
+
+std::uint8_t *PGMFile::GetImageData() { return image_data_.data(); }
+
+unsigned int PGMFile::GetSize() const { return image_data_.size(); }
+
+unsigned int PGMFile::GetWidth() const { return width; }
+
+unsigned int PGMFile::GetHeight() const {
+  if (width != 0) {
+    return image_data_.size() / width;
+  }
+  return 0;
 }
 
 bool PGMFile::WidthHeightDataLocHelper(const std::string &filename,
