@@ -56,6 +56,7 @@ edge (at least by my understanding of it)
   CSC_input.destination_offsets[5] = 6;
   CSC_input.destination_offsets[6] = 9;
   CSC_input.destination_offsets[7] = 11;
+  // index 8 is already set earlier
 
   CSC_input.source_indices[0] = 7;
   CSC_input.source_indices[1] = 0;
