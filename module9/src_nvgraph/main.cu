@@ -45,7 +45,7 @@ All edges go to the right:
         \    /\    /
           3  - 6
 7 has edge back to 0 since CSC by design must have every vertex have an incoming
-edge
+edge (at least by my understanding of it)
    */
 
   CSC_input.destination_offsets[0] = 0;
@@ -111,7 +111,8 @@ edge
 
   std::cout << "Got result values:\n";
   for (unsigned int i = 0; i < CSC_input.nvertices; ++i) {
-    std::cout << std::setw(2) << i << ": " << output_data[i] << std::endl;
+    std::cout << std::setw(2) << i << ": " << std::setw(5) << std::fixed
+              << std::setprecision(2) << output_data[i] << std::endl;
   }
 
   // cleanup
