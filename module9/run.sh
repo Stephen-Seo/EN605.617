@@ -23,6 +23,13 @@ function print_usage() {
     echo "    --intput-filename <filename> sets the input image filename (must be .pgm)"
     echo "    --output-filename <filename sets the output image filename (must end in .pgm)"
     echo "    --overwrite allows overwriting output filename"
+    echo "  nvgraph_test_harness"
+    echo "  nvgraph [-h | --help] [-p | -t] [-r] [-s] [-a]"
+    echo "    -p prints output of shortest path nvgraph algorithm"
+    echo "    -t times usage of nvgraph algorithm"
+    echo "    -r uses random edge weights (default seeded by 0)"
+    echo "    -s uses the time to seed the random weights (instead of 0)"
+    echo "    -a uses an alternate (bigger) graph"
 }
 
 function thrust_assignment() {
@@ -33,6 +40,11 @@ function thrust_assignment() {
 function npp_assignment() {
     make npp_assignment9
     ./npp_assignment9 "$@"
+}
+
+function nvgraph_assignment() {
+    make nvgraph_assignment9
+    ./nvgraph_assignment9 "$@"
 }
 
 trap on_exit EXIT
@@ -55,12 +67,21 @@ elif [[ "$1" == "thrust" ]]; then
 elif [[ "$1" == "npp_test_harness" ]]; then
     make npp_assignment9
     echo -e "\nNPP test harness: using timings with louie_lq.pgm image\n"
-    ./npp_assignment9 -t --input-filename louie_lq.pgm
+    ./npp_assignment9 -t --input-filename louie_lq.pgm | grep Average
     echo -e "\nNPP test harness: using timings with louie_hq.pgm (larger) image\n"
-    ./npp_assignment9 -t --input-filename louie_hq.pgm
+    ./npp_assignment9 -t --input-filename louie_hq.pgm | grep Average
 elif [[ "$1" == "npp" ]]; then
     shift 1
     npp_assignment "$@"
+elif [[ "$1" == "nvgraph_test_harness" ]]; then
+    make nvgraph_assignment9
+    echo -e "\nnvgraph test harness: using timings with regular graph with random edge weights\n"
+    ./nvgraph_assignment9 -t -r -s | grep Average
+    echo -e "\nnvgraph test harness: using timings with alternate bigger graph with random edge weights\n"
+    ./nvgraph_assignment9 -t -r -s -a | grep Average
+elif [[ "$1" == "nvgraph" ]]; then
+    shift 1
+    nvgraph_assignment "$@"
 else
     echo "Invalid arg(s) \"$@\""
     print_usage
