@@ -22,7 +22,9 @@ struct Args {
   bool enable_print_output;
   bool enable_timings;
   std::string input_filename;
-  bool do_rotation;
+  std::string output_filename;
+  double angle;
+  bool overwrite;
 };
 
 #endif
