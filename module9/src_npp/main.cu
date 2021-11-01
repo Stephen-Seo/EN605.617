@@ -95,6 +95,8 @@ int main(int argc, char **argv) {
     return 1;
   }
 
+  std::cout << "Rotating with angle (in degrees) " << args.angle << std::endl;
+
   NPPRotate(args.input_filename, args.output_filename, args.angle,
             args.overwrite, args.enable_timings);
 

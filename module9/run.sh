@@ -16,11 +16,22 @@ function print_usage() {
     echo "    -u is use subtraction"
     echo "    -m is use multiplication"
     echo "    -o is use modulus"
+    echo "  npp [-h | --help] [-t] [-a <degrees>] [--input-filename <filename>] [--output-filename <filename>] [--overwrite]"
+    echo "    -t is print timings"
+    echo "    -a <degrees> is set rotation angle"
+    echo "    --intput-filename <filename> sets the input image filename (must be .pgm)"
+    echo "    --output-filename <filename sets the output image filename (must end in .pgm)"
+    echo "    --overwrite allows overwriting output filename"
 }
 
 function thrust_assignment() {
     make thrust_assignment9
     ./thrust_assignment9 "$@"
+}
+
+function npp_assignment() {
+    make npp_assignment9
+    ./npp_assignment9 "$@"
 }
 
 trap on_exit EXIT
@@ -40,6 +51,9 @@ if [[ "$1" == "thrust_test_harness" ]]; then
 elif [[ "$1" == "thrust" ]]; then
     shift 1
     thrust_assignment "$@"
+elif [[ "$1" == "npp" ]]; then
+    shift 1
+    npp_assignment "$@"
 else
     echo "Invalid arg(s) \"$@\""
     print_usage
