@@ -54,9 +54,9 @@ elif [[ "$1" == "thrust" ]]; then
     thrust_assignment "$@"
 elif [[ "$1" == "npp_test_harness" ]]; then
     make npp_assignment9
-    echo -ne "NPP test harness: using timings with louie_lq.pgm image"
+    echo -e "\nNPP test harness: using timings with louie_lq.pgm image\n"
     ./npp_assignment9 -t --input-filename louie_lq.pgm
-    echo -ne "NPP test harness: using timings with louie_hq.pgm (larger) image"
+    echo -e "\nNPP test harness: using timings with louie_hq.pgm (larger) image\n"
     ./npp_assignment9 -t --input-filename louie_hq.pgm
 elif [[ "$1" == "npp" ]]; then
     shift 1
