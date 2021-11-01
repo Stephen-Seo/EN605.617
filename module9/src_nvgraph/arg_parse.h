@@ -1,5 +1,5 @@
-#ifndef IGPUP_MODULE_9_NPP_ARG_PARSE_H_
-#define IGPUP_MODULE_9_NPP_ARG_PARSE_H_
+#ifndef IGPUP_MODULE_9_NVGRAPH_ARG_PARSE_H_
+#define IGPUP_MODULE_9_NVGRAPH_ARG_PARSE_H_
 
 #include <string>
 
@@ -21,10 +21,9 @@ struct Args {
 
   bool enable_print_output;
   bool enable_timings;
-  std::string input_filename;
-  std::string output_filename;
-  double angle;
-  bool overwrite;
+  bool randomize_weights;
+  bool seed_random_with_time;
+  bool use_alternate_graph;
 };
 
 #endif

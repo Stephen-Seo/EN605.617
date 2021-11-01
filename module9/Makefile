@@ -11,7 +11,8 @@ NPP_SOURCES = \
 	src_npp/pgm_rw.cc
 
 NVGRAPH_SOURCES = \
-	src_nvgraph/main.cu
+	src_nvgraph/main.cu \
+	src_nvgraph/arg_parse.cc
 
 all: thrust_assignment9 npp_assignment9 nvgraph_assignment9
 
