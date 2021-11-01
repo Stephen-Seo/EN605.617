@@ -1,5 +1,7 @@
 #include "thrust_operations.h"
 
+#include <thrust/execution_policy.h>
+
 void ThrustOps::AddThrust(const thrust::device_vector<int> &a,
                           const thrust::device_vector<int> &b,
                           thrust::device_vector<int> &out) {
