@@ -16,6 +16,7 @@ function print_usage() {
     echo "    -u is use subtraction"
     echo "    -m is use multiplication"
     echo "    -o is use modulus"
+    echo "  npp_test_harness"
     echo "  npp [-h | --help] [-t] [-a <degrees>] [--input-filename <filename>] [--output-filename <filename>] [--overwrite]"
     echo "    -t is print timings"
     echo "    -a <degrees> is set rotation angle"
@@ -51,6 +52,12 @@ if [[ "$1" == "thrust_test_harness" ]]; then
 elif [[ "$1" == "thrust" ]]; then
     shift 1
     thrust_assignment "$@"
+elif [[ "$1" == "npp_test_harness" ]]; then
+    make npp_assignment9
+    echo -ne "NPP test harness: using timings with louie_lq.pgm image"
+    ./npp_assignment9 -t --input-filename louie_lq.pgm
+    echo -ne "NPP test harness: using timings with louie_hq.pgm (larger) image"
+    ./npp_assignment9 -t --input-filename louie_hq.pgm
 elif [[ "$1" == "npp" ]]; then
     shift 1
     npp_assignment "$@"
