@@ -55,8 +55,8 @@ void ThrustOps::DoTimingsOfOp(ThrustFn fn, const char *op_name,
       count += nanos;
     }
   }
-  std::cout << "Average of 20 " << op_name << " runs == " << count / 20
-            << " nanos\n";
+  std::cout << "Average of 20 " << op_name << " of size " << a.size()
+            << " runs == " << count / 20 << " nanos\n";
 }
 
 void ThrustOps::DoPrintsOfOp(ThrustFn fn, const char *op_name,
