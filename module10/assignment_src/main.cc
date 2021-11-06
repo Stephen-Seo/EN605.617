@@ -26,6 +26,7 @@
 #endif
 
 #include "arg_parse.h"
+#include "get_exe_dirname.h"
 
 ///
 //  Constants
@@ -207,6 +208,9 @@ void Cleanup(cl_context context, cl_command_queue commandQueue,
 //	main() for HelloWorld example
 //
 int main(int argc, char **argv) {
+  std::string exe_dirname = GetExeDirName(argv[0]);
+  //std::cout << exe_dirname << std::endl; // DEBUG
+
   Args args;
   if (args.ParseArgs(argc, argv)) {
     return 0;
