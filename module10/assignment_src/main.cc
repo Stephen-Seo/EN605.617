@@ -191,18 +191,33 @@ bool CreateMemObjects(cl_context context, cl_mem mem_objects[3], float *a,
 ///
 //  Cleanup any created OpenCL resources
 //
-void Cleanup(cl_context context, cl_command_queue command_queue,
-             cl_program program, cl_kernel kernel, cl_mem mem_objects[3]) {
-  for (int i = 0; i < 3; i++) {
-    if (mem_objects[i] != 0) clReleaseMemObject(mem_objects[i]);
+void Cleanup(cl_context *context, cl_command_queue *command_queue,
+             cl_program *program, cl_kernel *kernel, cl_mem mem_objects[3]) {
+  if (mem_objects != nullptr) {
+    for (int i = 0; i < 3; i++) {
+      if (mem_objects[i] != 0) clReleaseMemObject(mem_objects[i]);
+      mem_objects[i] = 0;
+    }
   }
-  if (command_queue != 0) clReleaseCommandQueue(command_queue);
+  if (command_queue != nullptr) {
+    if (*command_queue != 0) clReleaseCommandQueue(*command_queue);
+    *command_queue = 0;
+  }
 
-  if (kernel != 0) clReleaseKernel(kernel);
+  if (kernel != nullptr) {
+    if (*kernel != 0) clReleaseKernel(*kernel);
+    *kernel = 0;
+  }
 
-  if (program != 0) clReleaseProgram(program);
+  if (program != nullptr) {
+    if (*program != 0) clReleaseProgram(*program);
+    *program = 0;
+  }
 
-  if (context != 0) clReleaseContext(context);
+  if (context != nullptr) {
+    if (*context != 0) clReleaseContext(*context);
+    *context = 0;
+  }
 }
 
 bool SetUpContext(cl_context *context, cl_device_id *device,
@@ -218,7 +233,7 @@ bool SetUpContext(cl_context *context, cl_device_id *device,
   // on the created context
   *command_queue = CreateCommandQueue(*context, device);
   if (*command_queue == NULL) {
-    Cleanup(*context, *command_queue, nullptr, nullptr, nullptr);
+    Cleanup(context, command_queue, nullptr, nullptr, nullptr);
     return false;
   }
 
@@ -231,7 +246,7 @@ bool SetUpKernel(cl_context *context, cl_device_id *device,
   // Create OpenCL program from HelloWorld.cl kernel source
   *program = CreateProgram(*context, *device, kernel_path);
   if (program == NULL) {
-    Cleanup(*context, *command_queue, *program, *kernel, nullptr);
+    Cleanup(context, command_queue, program, kernel, nullptr);
     return false;
   }
 
@@ -239,7 +254,7 @@ bool SetUpKernel(cl_context *context, cl_device_id *device,
   *kernel = clCreateKernel(*program, "hello_kernel", NULL);
   if (kernel == NULL) {
     std::cerr << "Failed to create kernel" << std::endl;
-    Cleanup(*context, *command_queue, *program, *kernel, nullptr);
+    Cleanup(context, command_queue, program, kernel, nullptr);
     return false;
   }
 
@@ -260,7 +275,7 @@ bool SetUpBuffers(cl_context *context, cl_command_queue *command_queue,
   }
 
   if (!CreateMemObjects(*context, mem_objects, a, b)) {
-    Cleanup(*context, *command_queue, *program, *kernel, mem_objects);
+    Cleanup(context, command_queue, program, kernel, mem_objects);
     return false;
   }
 
@@ -270,7 +285,7 @@ bool SetUpBuffers(cl_context *context, cl_command_queue *command_queue,
   errNum |= clSetKernelArg(*kernel, 2, sizeof(cl_mem), &mem_objects[2]);
   if (errNum != CL_SUCCESS) {
     std::cerr << "Error setting kernel arguments." << std::endl;
-    Cleanup(*context, *command_queue, *program, *kernel, mem_objects);
+    Cleanup(context, command_queue, program, kernel, mem_objects);
     return false;
   }
   return true;
@@ -283,12 +298,21 @@ bool EnqueueTask(cl_context *context, cl_command_queue *command_queue,
   size_t localWorkSize[1] = {1};
 
   // Queue the kernel up for execution across the array
+  cl_event event;
   cl_int errNum =
       clEnqueueNDRangeKernel(*command_queue, *kernel, 1, NULL, globalWorkSize,
-                             localWorkSize, 0, NULL, NULL);
+                             localWorkSize, 0, NULL, &event);
   if (errNum != CL_SUCCESS) {
     std::cerr << "Error queuing kernel for execution." << std::endl;
-    Cleanup(*context, *command_queue, *program, *kernel, mem_objects);
+    Cleanup(context, command_queue, program, kernel, mem_objects);
+    return false;
+  }
+
+  errNum = clWaitForEvents(1, &event);
+
+  if (errNum != CL_SUCCESS) {
+    std::cerr << "Error watiing on kernel to complete." << std::endl;
+    Cleanup(context, command_queue, program, kernel, mem_objects);
     return false;
   }
 
@@ -304,7 +328,7 @@ bool GetOutput(cl_context *context, cl_command_queue *command_queue,
                           ARRAY_SIZE * sizeof(float), result, 0, NULL, NULL);
   if (errNum != CL_SUCCESS) {
     std::cerr << "Error reading result buffer." << std::endl;
-    Cleanup(*context, *command_queue, *program, *kernel, mem_objects);
+    Cleanup(context, command_queue, program, kernel, mem_objects);
     return false;
   }
 
@@ -337,6 +361,8 @@ bool DoTask(cl_context *context, cl_device_id *device,
   if (!GetOutput(context, command_queue, program, kernel, mem_objects)) {
     return false;
   }
+
+  Cleanup(0, 0, program, kernel, mem_objects);
 
   return true;
 }
@@ -403,7 +429,7 @@ int main(int argc, char **argv) {
   }
 
   std::cout << "Executed program succesfully." << std::endl;
-  Cleanup(context, command_queue, program, kernel, mem_objects);
+  Cleanup(&context, &command_queue, &program, &kernel, mem_objects);
 
   return 0;
 }
