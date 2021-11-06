@@ -362,6 +362,7 @@ bool DoTask(cl_context *context, cl_device_id *device,
     return false;
   }
 
+  // Cleanup the kernel and related objects for later re-invocations of DoTask
   Cleanup(0, 0, program, kernel, mem_objects);
 
   return true;
