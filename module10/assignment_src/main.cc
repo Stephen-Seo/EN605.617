@@ -80,7 +80,7 @@ cl_context CreateContext() {
 cl_command_queue CreateCommandQueue(cl_context context, cl_device_id *device) {
   cl_int errNum;
   cl_device_id *devices;
-  cl_command_queue commandQueue = NULL;
+  cl_command_queue command_queue = NULL;
   size_t deviceBufferSize = -1;
 
   // First get the size of the devices buffer
@@ -109,16 +109,16 @@ cl_command_queue CreateCommandQueue(cl_context context, cl_device_id *device) {
   // In this example, we just choose the first available device.  In a
   // real program, you would likely use all available devices or choose
   // the highest performance device based on OpenCL device queries
-  commandQueue = clCreateCommandQueue(context, devices[0], 0, NULL);
-  if (commandQueue == NULL) {
+  command_queue = clCreateCommandQueue(context, devices[0], 0, NULL);
+  if (command_queue == NULL) {
     delete[] devices;
-    std::cerr << "Failed to create commandQueue for device 0";
+    std::cerr << "Failed to create command_queue for device 0";
     return NULL;
   }
 
   *device = devices[0];
   delete[] devices;
-  return commandQueue;
+  return command_queue;
 }
 
 ///
@@ -168,18 +168,19 @@ cl_program CreateProgram(cl_context context, cl_device_id device,
 //  The kernel takes three arguments: result (output), a (input),
 //  and b (input)
 //
-bool CreateMemObjects(cl_context context, cl_mem memObjects[3], float *a,
+bool CreateMemObjects(cl_context context, cl_mem mem_objects[3], float *a,
                       float *b) {
-  memObjects[0] =
+  mem_objects[0] =
       clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                      sizeof(float) * ARRAY_SIZE, a, NULL);
-  memObjects[1] =
+  mem_objects[1] =
       clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                      sizeof(float) * ARRAY_SIZE, b, NULL);
-  memObjects[2] = clCreateBuffer(context, CL_MEM_READ_WRITE,
-                                 sizeof(float) * ARRAY_SIZE, NULL, NULL);
+  mem_objects[2] = clCreateBuffer(context, CL_MEM_READ_WRITE,
+                                  sizeof(float) * ARRAY_SIZE, NULL, NULL);
 
-  if (memObjects[0] == NULL || memObjects[1] == NULL || memObjects[2] == NULL) {
+  if (mem_objects[0] == NULL || mem_objects[1] == NULL ||
+      mem_objects[2] == NULL) {
     std::cerr << "Error creating memory objects." << std::endl;
     return false;
   }
@@ -190,12 +191,12 @@ bool CreateMemObjects(cl_context context, cl_mem memObjects[3], float *a,
 ///
 //  Cleanup any created OpenCL resources
 //
-void Cleanup(cl_context context, cl_command_queue commandQueue,
-             cl_program program, cl_kernel kernel, cl_mem memObjects[3]) {
+void Cleanup(cl_context context, cl_command_queue command_queue,
+             cl_program program, cl_kernel kernel, cl_mem mem_objects[3]) {
   for (int i = 0; i < 3; i++) {
-    if (memObjects[i] != 0) clReleaseMemObject(memObjects[i]);
+    if (mem_objects[i] != 0) clReleaseMemObject(mem_objects[i]);
   }
-  if (commandQueue != 0) clReleaseCommandQueue(commandQueue);
+  if (command_queue != 0) clReleaseCommandQueue(command_queue);
 
   if (kernel != 0) clReleaseKernel(kernel);
 
@@ -204,102 +205,107 @@ void Cleanup(cl_context context, cl_command_queue commandQueue,
   if (context != 0) clReleaseContext(context);
 }
 
-///
-//	main() for HelloWorld example
-//
-int main(int argc, char **argv) {
-  std::string exe_dirname = GetExeDirName(argv[0]);
-  //std::cout << exe_dirname << std::endl; // DEBUG
-
-  Args args;
-  if (args.ParseArgs(argc, argv)) {
-    return 0;
-  }
-
-  cl_context context = 0;
-  cl_command_queue commandQueue = 0;
-  cl_program program = 0;
-  cl_device_id device = 0;
-  cl_kernel kernel = 0;
-  cl_mem memObjects[3] = {0, 0, 0};
-  cl_int errNum;
-
+bool SetUpContext(cl_context *context, cl_device_id *device,
+                  cl_command_queue *command_queue) {
   // Create an OpenCL context on first available platform
-  context = CreateContext();
-  if (context == NULL) {
+  *context = CreateContext();
+  if (*context == NULL) {
     std::cerr << "Failed to create OpenCL context." << std::endl;
-    return 1;
+    return false;
   }
 
   // Create a command-queue on the first device available
   // on the created context
-  commandQueue = CreateCommandQueue(context, &device);
-  if (commandQueue == NULL) {
-    Cleanup(context, commandQueue, program, kernel, memObjects);
-    return 1;
+  *command_queue = CreateCommandQueue(*context, device);
+  if (*command_queue == NULL) {
+    Cleanup(*context, *command_queue, nullptr, nullptr, nullptr);
+    return false;
   }
 
+  return true;
+}
+
+bool SetUpKernel(cl_context *context, cl_device_id *device,
+                 cl_command_queue *command_queue, cl_kernel *kernel,
+                 cl_program *program, const char *kernel_path) {
   // Create OpenCL program from HelloWorld.cl kernel source
-  program = CreateProgram(context, device, "HelloWorld.cl");
+  *program = CreateProgram(*context, *device, kernel_path);
   if (program == NULL) {
-    Cleanup(context, commandQueue, program, kernel, memObjects);
-    return 1;
+    Cleanup(*context, *command_queue, *program, *kernel, nullptr);
+    return false;
   }
 
   // Create OpenCL kernel
-  kernel = clCreateKernel(program, "hello_kernel", NULL);
+  *kernel = clCreateKernel(*program, "hello_kernel", NULL);
   if (kernel == NULL) {
     std::cerr << "Failed to create kernel" << std::endl;
-    Cleanup(context, commandQueue, program, kernel, memObjects);
-    return 1;
+    Cleanup(*context, *command_queue, *program, *kernel, nullptr);
+    return false;
   }
 
+  return true;
+}
+
+bool SetUpBuffers(cl_context *context, cl_command_queue *command_queue,
+                  cl_program *program, cl_kernel *kernel,
+                  cl_mem mem_objects[3]) {
   // Create memory objects that will be used as arguments to
   // kernel.  First create host memory arrays that will be
   // used to store the arguments to the kernel
-  float result[ARRAY_SIZE];
   float a[ARRAY_SIZE];
   float b[ARRAY_SIZE];
   for (int i = 0; i < ARRAY_SIZE; i++) {
-    a[i] = (float)i;
-    b[i] = (float)(i * 2);
+    a[i] = (float)(i * 2);
+    b[i] = (float)i;
   }
 
-  if (!CreateMemObjects(context, memObjects, a, b)) {
-    Cleanup(context, commandQueue, program, kernel, memObjects);
-    return 1;
+  if (!CreateMemObjects(*context, mem_objects, a, b)) {
+    Cleanup(*context, *command_queue, *program, *kernel, mem_objects);
+    return false;
   }
 
   // Set the kernel arguments (result, a, b)
-  errNum = clSetKernelArg(kernel, 0, sizeof(cl_mem), &memObjects[0]);
-  errNum |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &memObjects[1]);
-  errNum |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &memObjects[2]);
+  cl_int errNum = clSetKernelArg(*kernel, 0, sizeof(cl_mem), &mem_objects[0]);
+  errNum |= clSetKernelArg(*kernel, 1, sizeof(cl_mem), &mem_objects[1]);
+  errNum |= clSetKernelArg(*kernel, 2, sizeof(cl_mem), &mem_objects[2]);
   if (errNum != CL_SUCCESS) {
     std::cerr << "Error setting kernel arguments." << std::endl;
-    Cleanup(context, commandQueue, program, kernel, memObjects);
-    return 1;
+    Cleanup(*context, *command_queue, *program, *kernel, mem_objects);
+    return false;
   }
+  return true;
+}
 
+bool EnqueueTask(cl_context *context, cl_command_queue *command_queue,
+                 cl_program *program, cl_kernel *kernel,
+                 cl_mem mem_objects[3]) {
   size_t globalWorkSize[1] = {ARRAY_SIZE};
   size_t localWorkSize[1] = {1};
 
   // Queue the kernel up for execution across the array
-  errNum = clEnqueueNDRangeKernel(commandQueue, kernel, 1, NULL, globalWorkSize,
-                                  localWorkSize, 0, NULL, NULL);
+  cl_int errNum =
+      clEnqueueNDRangeKernel(*command_queue, *kernel, 1, NULL, globalWorkSize,
+                             localWorkSize, 0, NULL, NULL);
   if (errNum != CL_SUCCESS) {
     std::cerr << "Error queuing kernel for execution." << std::endl;
-    Cleanup(context, commandQueue, program, kernel, memObjects);
-    return 1;
+    Cleanup(*context, *command_queue, *program, *kernel, mem_objects);
+    return false;
   }
 
+  return true;
+}
+
+bool GetOutput(cl_context *context, cl_command_queue *command_queue,
+               cl_program *program, cl_kernel *kernel, cl_mem mem_objects[3]) {
   // Read the output buffer back to the Host
-  errNum =
-      clEnqueueReadBuffer(commandQueue, memObjects[2], CL_TRUE, 0,
+  float result[ARRAY_SIZE];
+  cl_int errNum =
+      clEnqueueReadBuffer(*command_queue, mem_objects[2], CL_TRUE, 0,
                           ARRAY_SIZE * sizeof(float), result, 0, NULL, NULL);
   if (errNum != CL_SUCCESS) {
     std::cerr << "Error reading result buffer." << std::endl;
-    Cleanup(context, commandQueue, program, kernel, memObjects);
-    return 1;
+    Cleanup(*context, *command_queue, *program, *kernel, mem_objects);
+    return false;
   }
 
   // Output the result buffer
@@ -307,8 +313,97 @@ int main(int argc, char **argv) {
     std::cout << result[i] << " ";
   }
   std::cout << std::endl;
+
+  return true;
+}
+
+bool DoTask(cl_context *context, cl_device_id *device,
+            cl_command_queue *command_queue, cl_program *program,
+            cl_kernel *kernel, cl_mem mem_objects[3],
+            const char *program_path) {
+  if (!SetUpKernel(context, device, command_queue, kernel, program,
+                   program_path)) {
+    return false;
+  }
+
+  if (!SetUpBuffers(context, command_queue, program, kernel, mem_objects)) {
+    return false;
+  }
+
+  if (!EnqueueTask(context, command_queue, program, kernel, mem_objects)) {
+    return false;
+  }
+
+  if (!GetOutput(context, command_queue, program, kernel, mem_objects)) {
+    return false;
+  }
+
+  return true;
+}
+
+///
+//  main() for HelloWorld example
+//
+int main(int argc, char **argv) {
+  std::string exe_dirname = GetExeDirName(argv[0]);
+  // std::cout << exe_dirname << std::endl; // DEBUG
+
+  Args args;
+  if (args.ParseArgs(argc, argv)) {
+    return 0;
+  } else if (!args.do_addition && !args.do_subtraction &&
+             !args.do_multiplication && !args.do_division && !args.do_power) {
+    std::cout << "ERROR: An operation must be specified\n";
+    Args::DisplayHelp();
+    return 1;
+  }
+
+  cl_context context = 0;
+  cl_command_queue command_queue = 0;
+  cl_program program = 0;
+  cl_device_id device = 0;
+  cl_kernel kernel = 0;
+  cl_mem mem_objects[3] = {0, 0, 0};
+  cl_int errNum;
+
+  if (!SetUpContext(&context, &device, &command_queue)) {
+    return 1;
+  }
+
+  std::string cl_path;
+  if (args.do_addition) {
+    std::cout << "Do addition operation...\n";
+    cl_path = exe_dirname + "/assignment_src/addition.cl";
+    DoTask(&context, &device, &command_queue, &program, &kernel, mem_objects,
+           cl_path.c_str());
+  }
+  if (args.do_subtraction) {
+    std::cout << "Do subtraction operation...\n";
+    cl_path = exe_dirname + "/assignment_src/subtraction.cl";
+    DoTask(&context, &device, &command_queue, &program, &kernel, mem_objects,
+           cl_path.c_str());
+  }
+  if (args.do_multiplication) {
+    std::cout << "Do multiplication operation...\n";
+    cl_path = exe_dirname + "/assignment_src/multiplication.cl";
+    DoTask(&context, &device, &command_queue, &program, &kernel, mem_objects,
+           cl_path.c_str());
+  }
+  if (args.do_division) {
+    std::cout << "Do division operation...\n";
+    cl_path = exe_dirname + "/assignment_src/division.cl";
+    DoTask(&context, &device, &command_queue, &program, &kernel, mem_objects,
+           cl_path.c_str());
+  }
+  if (args.do_power) {
+    std::cout << "Do power operation...\n";
+    cl_path = exe_dirname + "/assignment_src/power.cl";
+    DoTask(&context, &device, &command_queue, &program, &kernel, mem_objects,
+           cl_path.c_str());
+  }
+
   std::cout << "Executed program succesfully." << std::endl;
-  Cleanup(context, commandQueue, program, kernel, memObjects);
+  Cleanup(context, command_queue, program, kernel, mem_objects);
 
   return 0;
 }

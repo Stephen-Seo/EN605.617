@@ -8,7 +8,7 @@ Args::Args()
     : do_addition(false),
       do_subtraction(false),
       do_multiplication(false),
-      do_modulus(false),
+      do_division(false),
       do_power(false) {}
 
 Args::~Args() {}
@@ -30,9 +30,9 @@ bool Args::ParseArgs(int argc, char **argv) {
     } else if (std::strcmp(argv[0], "-m") == 0 ||
                std::strcmp(argv[0], "--mult") == 0) {
       do_multiplication = true;
-    } else if (std::strcmp(argv[0], "-o") == 0 ||
-               std::strcmp(argv[0], "--mod") == 0) {
-      do_modulus = true;
+    } else if (std::strcmp(argv[0], "-d") == 0 ||
+               std::strcmp(argv[0], "--div") == 0) {
+      do_division = true;
     } else if (std::strcmp(argv[0], "-p") == 0 ||
                std::strcmp(argv[0], "--pow") == 0) {
       do_power = true;
@@ -48,10 +48,10 @@ bool Args::ParseArgs(int argc, char **argv) {
 
 void Args::DisplayHelp() {
   std::cout << "Usage:\n"
-               "  -h | --help\t\t\tprint this help text\n"
-               "  -a | --add\t\t\tRun add operation\n"
-               "  -s | --sub\t\t\tRun subtract operation\n"
-               "  -m | --mult\t\t\tRun multiply operation\n"
-               "  -o | --mod\t\t\tRun modulus operation\n"
-               "  -p | --pow\t\t\tRun power operation\n";
+               "  -h | --help\t\tprint this help text\n"
+               "  -a | --add\t\tRun add operation\n"
+               "  -s | --sub\t\tRun subtract operation\n"
+               "  -m | --mult\t\tRun multiply operation\n"
+               "  -d | --div\t\tRun division operation\n"
+               "  -p | --pow\t\tRun power operation\n";
 }

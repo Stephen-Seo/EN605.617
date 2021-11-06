@@ -20,7 +20,7 @@ struct Args {
   bool do_addition;
   bool do_subtraction;
   bool do_multiplication;
-  bool do_modulus;
+  bool do_division;
   bool do_power;
 };
 
