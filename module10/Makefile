@@ -1,3 +1,5 @@
+NVCC?=/usr/bin/env nvcc
+
 SOURCES = \
 	assignment_src/main.cc \
 	assignment_src/arg_parse.cc \
@@ -6,7 +8,7 @@ SOURCES = \
 all: assignment10
 
 assignment10: $(SOURCES)
-	$(CXX) $(CXXFLAGS) -g -O0 -std=c++11 -o assignment10 -lOpenCL $^
+	$(NVCC) -g -O0 -std=c++11 -o assignment10 -lOpenCL $^
 
 .PHONY: clean
 
