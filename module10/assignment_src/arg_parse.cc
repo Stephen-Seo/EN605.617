@@ -5,7 +5,8 @@
 #include <iostream>
 
 Args::Args()
-    : do_addition(false),
+    : do_timings(false),
+      do_addition(false),
       do_subtraction(false),
       do_multiplication(false),
       do_division(false),
@@ -21,6 +22,9 @@ bool Args::ParseArgs(int argc, char **argv) {
         std::strcmp(argv[0], "--help") == 0) {
       Args::DisplayHelp();
       return true;
+    } else if (std::strcmp(argv[0], "-t") == 0 ||
+               std::strcmp(argv[0], "--timings") == 0) {
+      do_timings = true;
     } else if (std::strcmp(argv[0], "-a") == 0 ||
                std::strcmp(argv[0], "--add") == 0) {
       do_addition = true;
@@ -48,10 +52,12 @@ bool Args::ParseArgs(int argc, char **argv) {
 
 void Args::DisplayHelp() {
   std::cout << "Usage:\n"
+               "  -t | --timings\tTime the operation being run\n"
                "  -h | --help\t\tprint this help text\n"
                "  -a | --add\t\tRun add operation\n"
                "  -s | --sub\t\tRun subtract operation\n"
                "  -m | --mult\t\tRun multiply operation\n"
                "  -d | --div\t\tRun division operation\n"
-               "  -p | --pow\t\tRun power operation\n";
+               "  -p | --pow\t\tRun power operation\n"
+               "    If \"-t\" is not specified, then output is printed\n";
 }

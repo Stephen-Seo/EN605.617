@@ -17,6 +17,7 @@ struct Args {
   bool ParseArgs(int argc, char **argv);
   static void DisplayHelp();
 
+  bool do_timings;
   bool do_addition;
   bool do_subtraction;
   bool do_multiplication;
