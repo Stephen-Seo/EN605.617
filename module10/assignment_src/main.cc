@@ -400,31 +400,46 @@ int main(int argc, char **argv) {
   std::string cl_path;
   if (args.do_addition) {
     std::cout << "Do addition operation...\n";
-    cl_path = exe_dirname + "/assignment_src/addition.cl";
+    cl_path = "assignment_src/ocl_addition.cl";
+    if (!exe_dirname.empty()) {
+      cl_path = exe_dirname + "/" + cl_path;
+    }
     DoTask(&context, &device, &command_queue, &program, &kernel, mem_objects,
            cl_path.c_str());
   }
   if (args.do_subtraction) {
     std::cout << "Do subtraction operation...\n";
-    cl_path = exe_dirname + "/assignment_src/subtraction.cl";
+    cl_path = "assignment_src/ocl_subtraction.cl";
+    if (!exe_dirname.empty()) {
+      cl_path = exe_dirname + "/" + cl_path;
+    }
     DoTask(&context, &device, &command_queue, &program, &kernel, mem_objects,
            cl_path.c_str());
   }
   if (args.do_multiplication) {
     std::cout << "Do multiplication operation...\n";
-    cl_path = exe_dirname + "/assignment_src/multiplication.cl";
+    cl_path = "assignment_src/ocl_multiplication.cl";
+    if (!exe_dirname.empty()) {
+      cl_path = exe_dirname + "/" + cl_path;
+    }
     DoTask(&context, &device, &command_queue, &program, &kernel, mem_objects,
            cl_path.c_str());
   }
   if (args.do_division) {
     std::cout << "Do division operation...\n";
-    cl_path = exe_dirname + "/assignment_src/division.cl";
+    cl_path = "assignment_src/ocl_division.cl";
+    if (!exe_dirname.empty()) {
+      cl_path = exe_dirname + "/" + cl_path;
+    }
     DoTask(&context, &device, &command_queue, &program, &kernel, mem_objects,
            cl_path.c_str());
   }
   if (args.do_power) {
     std::cout << "Do power operation...\n";
-    cl_path = exe_dirname + "/assignment_src/power.cl";
+    cl_path = "assignment_src/ocl_power.cl";
+    if (!exe_dirname.empty()) {
+      cl_path = exe_dirname + "/" + cl_path;
+    }
     DoTask(&context, &device, &command_queue, &program, &kernel, mem_objects,
            cl_path.c_str());
   }
