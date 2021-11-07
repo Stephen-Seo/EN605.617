@@ -52,12 +52,13 @@ bool Args::ParseArgs(int argc, char **argv) {
 
 void Args::DisplayHelp() {
   std::cout << "Usage:\n"
-               "  -t | --timings\tTime the operation being run\n"
                "  -h | --help\t\tprint this help text\n"
+               "  -t | --timings\tTime the operation being run\n"
                "  -a | --add\t\tRun add operation\n"
                "  -s | --sub\t\tRun subtract operation\n"
                "  -m | --mult\t\tRun multiply operation\n"
                "  -d | --div\t\tRun division operation\n"
                "  -p | --pow\t\tRun power operation\n"
-               "    If \"-t\" is not specified, then output is printed\n";
+               "    If \"-t\" is not specified, then output is printed\n"
+               "\n    If using \"run.sh\", prepend flags with \"excode\"\n";
 }
