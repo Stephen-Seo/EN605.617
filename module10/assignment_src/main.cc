@@ -482,12 +482,18 @@ int main(int argc, char **argv) {
 
     if (args.do_timings) {
       std::cout << "Do addition operation timings...\n";
-      TimeTask(&context, &device, &command_queue, &program, &kernel,
-               mem_objects, cl_path.c_str(), "addition");
+      if (!TimeTask(&context, &device, &command_queue, &program, &kernel,
+                    mem_objects, cl_path.c_str(), "addition")) {
+        Cleanup(&context, &command_queue, &program, &kernel, mem_objects);
+        return 1;
+      }
     } else {
       std::cout << "Do addition operation...\n";
-      DoTask(&context, &device, &command_queue, &program, &kernel, mem_objects,
-             cl_path.c_str());
+      if (!DoTask(&context, &device, &command_queue, &program, &kernel,
+                  mem_objects, cl_path.c_str())) {
+        Cleanup(&context, &command_queue, &program, &kernel, mem_objects);
+        return 1;
+      }
     }
   }
   if (args.do_subtraction) {
@@ -498,12 +504,18 @@ int main(int argc, char **argv) {
 
     if (args.do_timings) {
       std::cout << "Do subtraction operation timings...\n";
-      TimeTask(&context, &device, &command_queue, &program, &kernel,
-               mem_objects, cl_path.c_str(), "subtraction");
+      if (!TimeTask(&context, &device, &command_queue, &program, &kernel,
+                    mem_objects, cl_path.c_str(), "subtraction")) {
+        Cleanup(&context, &command_queue, &program, &kernel, mem_objects);
+        return 1;
+      }
     } else {
       std::cout << "Do subtraction operation...\n";
-      DoTask(&context, &device, &command_queue, &program, &kernel, mem_objects,
-             cl_path.c_str());
+      if (!DoTask(&context, &device, &command_queue, &program, &kernel,
+                  mem_objects, cl_path.c_str())) {
+        Cleanup(&context, &command_queue, &program, &kernel, mem_objects);
+        return 1;
+      }
     }
   }
   if (args.do_multiplication) {
@@ -514,12 +526,18 @@ int main(int argc, char **argv) {
 
     if (args.do_timings) {
       std::cout << "Do multiplication operation timings...\n";
-      TimeTask(&context, &device, &command_queue, &program, &kernel,
-               mem_objects, cl_path.c_str(), "multiplication");
+      if (!TimeTask(&context, &device, &command_queue, &program, &kernel,
+                    mem_objects, cl_path.c_str(), "multiplication")) {
+        Cleanup(&context, &command_queue, &program, &kernel, mem_objects);
+        return 1;
+      }
     } else {
       std::cout << "Do multiplication operation...\n";
-      DoTask(&context, &device, &command_queue, &program, &kernel, mem_objects,
-             cl_path.c_str());
+      if (!DoTask(&context, &device, &command_queue, &program, &kernel,
+                  mem_objects, cl_path.c_str())) {
+        Cleanup(&context, &command_queue, &program, &kernel, mem_objects);
+        return 1;
+      }
     }
   }
   if (args.do_division) {
@@ -530,12 +548,18 @@ int main(int argc, char **argv) {
 
     if (args.do_timings) {
       std::cout << "Do division operation timings...\n";
-      TimeTask(&context, &device, &command_queue, &program, &kernel,
-               mem_objects, cl_path.c_str(), "division");
+      if (!TimeTask(&context, &device, &command_queue, &program, &kernel,
+                    mem_objects, cl_path.c_str(), "division")) {
+        Cleanup(&context, &command_queue, &program, &kernel, mem_objects);
+        return 1;
+      }
     } else {
       std::cout << "Do division operation...\n";
-      DoTask(&context, &device, &command_queue, &program, &kernel, mem_objects,
-             cl_path.c_str());
+      if (!DoTask(&context, &device, &command_queue, &program, &kernel,
+                  mem_objects, cl_path.c_str())) {
+        Cleanup(&context, &command_queue, &program, &kernel, mem_objects);
+        return 1;
+      }
     }
   }
   if (args.do_power) {
@@ -546,12 +570,18 @@ int main(int argc, char **argv) {
 
     if (args.do_timings) {
       std::cout << "Do power operation timings...\n";
-      TimeTask(&context, &device, &command_queue, &program, &kernel,
-               mem_objects, cl_path.c_str(), "power");
+      if (!TimeTask(&context, &device, &command_queue, &program, &kernel,
+                    mem_objects, cl_path.c_str(), "power")) {
+        Cleanup(&context, &command_queue, &program, &kernel, mem_objects);
+        return 1;
+      }
     } else {
       std::cout << "Do power operation...\n";
-      DoTask(&context, &device, &command_queue, &program, &kernel, mem_objects,
-             cl_path.c_str());
+      if (!DoTask(&context, &device, &command_queue, &program, &kernel,
+                  mem_objects, cl_path.c_str())) {
+        Cleanup(&context, &command_queue, &program, &kernel, mem_objects);
+        return 1;
+      }
     }
   }
 
