@@ -7,7 +7,7 @@ SOURCES = \
 all: assignment11
 
 assignment11: $(SOURCES)
-	$(NVCC) -g -O0 -lOpenCL -o assignment11 $^
+	$(NVCC) -g -O0 -std=c++11 -lOpenCL -o assignment11 $^
 
 .PHONY: clean
 
