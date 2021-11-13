@@ -9,9 +9,12 @@ function print_usage() {
     echo "Usage:"
     echo "  clc_test_harness"
     echo "  clc [-h] [-r] [-t]"
-    echo "    -h  Print this help text"
+    echo "    -h  Print help text"
     echo "    -r  Use time to seed the randomized signal"
     echo "    -t  Time the executions of the OpenCL kernel"
+    echo -n "    Note that by default, using \"clc\" with no flags will run "
+    echo -n "the default behavior, which is to print the signal, run the "
+    echo "convolution, and output the resulting data"
 }
 
 function opencl_assignment() {
