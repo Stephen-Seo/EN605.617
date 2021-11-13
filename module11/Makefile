@@ -1,7 +1,8 @@
 NVCC?=/usr/bin/env nvcc
 
 SOURCES = \
-	assignment_src/main.cc
+	assignment_src/main.cc \
+	assignment_src/arg_parse.cc
 
 all: assignment11
 

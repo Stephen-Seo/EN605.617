@@ -22,6 +22,8 @@
 #include <string>
 #include <cstdlib>
 #include <iomanip>
+#include <ctime>
+#include <chrono>
 
 #ifdef __APPLE__
 #include <OpenCL/cl.h>
@@ -32,6 +34,8 @@
 #if !defined(CL_CALLBACK)
 #define CL_CALLBACK
 #endif
+
+#include "arg_parse.h"
 
 // Constants
 const unsigned int inputSignalWidth  = 49;
@@ -86,8 +90,17 @@ void CL_CALLBACK contextCallback(
 //
 int main(int argc, char** argv)
 {
+    Args args;
+    if(args.ParseArgs(argc, argv)) {
+      return 0;
+    }
+
     // first, initialize inputSignal with pseudo-random values
-    std::srand(0); // change to use std::time(0) for less deterministic results
+    if (args.randomize_signal_) {
+      std::srand(std::time(nullptr));
+    } else {
+      std::srand(0);
+    }
     for(unsigned int y = 0; y < inputSignalHeight; ++y) {
         for(unsigned int x = 0; x < inputSignalWidth; ++x) {
             inputSignal[y][x] = std::rand() % 10;
@@ -273,41 +286,84 @@ int main(int argc, char** argv)
     const size_t globalWorkSize[2] = { outputSignalWidth, outputSignalHeight };
     const size_t localWorkSize[2]  = { 1, 1 };
 
-    // Queue the kernel up for execution across the array
-    errNum = clEnqueueNDRangeKernel(
-        queue, 
-        kernel, 
-        2,
-        NULL,
-        globalWorkSize, 
-        localWorkSize,
-        0, 
-        NULL, 
-        NULL);
-    checkErr(errNum, "clEnqueueNDRangeKernel");
-    
-    errNum = clEnqueueReadBuffer(
-        queue, 
-        outputSignalBuffer, 
-        CL_TRUE,
-        0, 
-        sizeof(cl_uint) * outputSignalHeight * outputSignalHeight, 
-        outputSignal,
-        0, 
-        NULL, 
-        NULL);
-    checkErr(errNum, "clEnqueueReadBuffer");
-
-    // Output the result buffer
-    std::cout << "Result buffer:\n";
-    for (int y = 0; y < outputSignalHeight; y++)
-    {
-        for (int x = 0; x < outputSignalWidth; x++)
-        {
-            std::cout << std::setw(4) << std::setprecision(1) << std::fixed
-                      << outputSignal[y][x] << " ";
+    if (args.do_timings_) {
+        unsigned long long count = 0;
+        for (unsigned int i = 0; i < 25; ++i) {
+            auto start_time = std::chrono::high_resolution_clock::now();
+            // Queue the kernel up for execution across the array
+            errNum = clEnqueueNDRangeKernel(
+                queue, 
+                kernel, 
+                2,
+                NULL,
+                globalWorkSize, 
+                localWorkSize,
+                0, 
+                NULL, 
+                NULL);
+            checkErr(errNum, "clEnqueueNDRangeKernel");
+            
+            errNum = clEnqueueReadBuffer(
+                queue, 
+                outputSignalBuffer, 
+                CL_TRUE,
+                0, 
+                sizeof(cl_uint) * outputSignalHeight * outputSignalHeight, 
+                outputSignal,
+                0, 
+                NULL, 
+                NULL);
+            checkErr(errNum, "clEnqueueReadBuffer");
+            auto end_time = std::chrono::high_resolution_clock::now();
+            unsigned long long nanos =
+                std::chrono::duration_cast<std::chrono::nanoseconds>
+                    (end_time - start_time).count();
+            if (i > 4) {
+                std::cout << "Iteration " << i - 4 << " took " << nanos
+                          << " nanoseconds\n";
+                count += nanos;
+            }
         }
-        std::cout << std::endl;
+        std::cout << "Average of 20 runs == " << count / 20 << " nanos\n";
+    } else {
+        // Queue the kernel up for execution across the array
+        errNum = clEnqueueNDRangeKernel(
+            queue, 
+            kernel, 
+            2,
+            NULL,
+            globalWorkSize, 
+            localWorkSize,
+            0, 
+            NULL, 
+            NULL);
+        checkErr(errNum, "clEnqueueNDRangeKernel");
+        
+        errNum = clEnqueueReadBuffer(
+            queue, 
+            outputSignalBuffer, 
+            CL_TRUE,
+            0, 
+            sizeof(cl_uint) * outputSignalHeight * outputSignalHeight, 
+            outputSignal,
+            0, 
+            NULL, 
+            NULL);
+        checkErr(errNum, "clEnqueueReadBuffer");
+    }
+
+    if (!args.do_timings_) {
+        // Output the result buffer
+        std::cout << "Result buffer:\n";
+        for (int y = 0; y < outputSignalHeight; y++)
+        {
+            for (int x = 0; x < outputSignalWidth; x++)
+            {
+                std::cout << std::setw(4) << std::setprecision(1) << std::fixed
+                          << outputSignal[y][x] << " ";
+            }
+            std::cout << std::endl;
+        }
     }
 
     std::cout << std::endl << "Executed program succesfully." << std::endl;
