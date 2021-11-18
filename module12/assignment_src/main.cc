@@ -1,9 +1,9 @@
-#include <vector>
-#include <iostream>
-#include <string>
 #include <fstream>
-#include <iterator>
 #include <iomanip>
+#include <iostream>
+#include <iterator>
+#include <string>
+#include <vector>
 
 #ifdef __APPLE__
 #include <OpenCL/cl.h>
@@ -44,18 +44,17 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  err_num = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_GPU, 1, &device_id, nullptr);
+  err_num =
+      clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_GPU, 1, &device_id, nullptr);
   if (err_num != CL_SUCCESS) {
     std::cout << "ERROR: Failed to get OpenCL device" << std::endl;
     return 1;
   }
 
   cl_context_properties context_properties[] = {
-    CL_CONTEXT_PLATFORM,
-    (cl_context_properties)platform_id,
-    0
-  };
-  context = clCreateContext(context_properties, 1, &device_id, nullptr, nullptr, &err_num);
+      CL_CONTEXT_PLATFORM, (cl_context_properties)platform_id, 0};
+  context = clCreateContext(context_properties, 1, &device_id, nullptr, nullptr,
+                            &err_num);
   if (err_num != CL_SUCCESS) {
     std::cout << "ERROR: Failed to get OpenCL context" << std::endl;
     return 1;
@@ -83,7 +82,8 @@ int main(int argc, char **argv) {
   {
     const char *program_source_cstr = program_source.c_str();
     std::size_t program_source_length = program_source.size();
-    program = clCreateProgramWithSource(context, 1, &program_source_cstr, &program_source_length, &err_num);
+    program = clCreateProgramWithSource(context, 1, &program_source_cstr,
+                                        &program_source_length, &err_num);
     if (err_num != CL_SUCCESS) {
       std::cout << "ERROR: Failed to create OpenCL program" << std::endl;
       clReleaseContext(context);
@@ -97,9 +97,8 @@ int main(int argc, char **argv) {
     std::vector<char> build_log;
     build_log.resize(16384);
     build_log.at(16383) = 0;
-    clGetProgramBuildInfo(program, device_id,
-                          CL_PROGRAM_BUILD_LOG, build_log.size(),
-                          build_log.data(), nullptr);
+    clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG,
+                          build_log.size(), build_log.data(), nullptr);
     std::cout << build_log.data();
     clReleaseProgram(program);
     clReleaseContext(context);
@@ -131,7 +130,9 @@ int main(int argc, char **argv) {
   std::cout << "Input buffer:\n";
   PrintIterable<decltype(host_buffer)>(host_buffer, kBufferWidth);
 
-  read_buffer = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(int) * kBufferSize, host_buffer.data(), &err_num);
+  read_buffer =
+      clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                     sizeof(int) * kBufferSize, host_buffer.data(), &err_num);
   if (err_num != CL_SUCCESS) {
     std::cout << "ERROR: Failed to create OpenCL read_bufer" << std::endl;
     clReleaseCommandQueue(queue);
@@ -141,7 +142,8 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  write_buffer = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(int) * kBufferSize, nullptr, &err_num);
+  write_buffer = clCreateBuffer(context, CL_MEM_WRITE_ONLY,
+                                sizeof(int) * kBufferSize, nullptr, &err_num);
   if (err_num != CL_SUCCESS) {
     std::cout << "ERROR: Failed to create OpenCL write_bufer" << std::endl;
     clReleaseMemObject(read_buffer);
@@ -198,7 +200,8 @@ int main(int argc, char **argv) {
   }
 
   std::size_t size = kBufferSize;
-  err_num = clEnqueueNDRangeKernel(queue, kernel, 1, nullptr, &size, &size, 0, nullptr, nullptr);
+  err_num = clEnqueueNDRangeKernel(queue, kernel, 1, nullptr, &size, &size, 0,
+                                   nullptr, nullptr);
   if (err_num != CL_SUCCESS) {
     std::cout << "ERROR: Failed to execute OpenCL kernel" << std::endl;
     clReleaseMemObject(write_buffer);
@@ -210,7 +213,9 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  err_num = clEnqueueReadBuffer(queue, write_buffer, CL_TRUE, 0, sizeof(int) * kBufferSize, host_buffer.data(), 0, nullptr, nullptr);
+  err_num = clEnqueueReadBuffer(queue, write_buffer, CL_TRUE, 0,
+                                sizeof(int) * kBufferSize, host_buffer.data(),
+                                0, nullptr, nullptr);
   if (err_num != CL_SUCCESS) {
     std::cout << "ERROR: Failed to read result OpenCL buffer" << std::endl;
     clReleaseMemObject(write_buffer);
