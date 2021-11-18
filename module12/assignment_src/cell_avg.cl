@@ -8,6 +8,12 @@ __kernel void cell_avg(__global const int *input_buffer,
 
   int sum = 0;
 
+  /*
+   *  There doesn't appear to be a way to create sub-buffers for a rectangular
+   *  region nor per thread of excecution. Instead, this kernel function will
+   *  just sum a 2x2 region starting at the current index with wrap-around.
+   */
+
   // first row
   sum += input_buffer[x + y * width];
   if (x + 1 >= width) {
