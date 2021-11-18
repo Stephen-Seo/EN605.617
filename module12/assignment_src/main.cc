@@ -268,7 +268,7 @@ int main(int argc, char **argv) {
 
   // Output input data
   std::cout << "Input buffer:\n";
-  PrintIterable<decltype(host_buffer)>(host_buffer, kBufferWidth);
+  PrintIterable(host_buffer, kBufferWidth);
 
   // Set up read-only OpenCL buffer with input data
   if (SetUpReadBuffer(&context, &host_buffer, &read_buffer) != CL_SUCCESS) {
@@ -324,7 +324,7 @@ int main(int argc, char **argv) {
 
   // Print result data
   std::cout << "Output buffer:\n";
-  PrintIterable<decltype(host_buffer)>(host_buffer, kBufferWidth);
+  PrintIterable(host_buffer, kBufferWidth);
 
   // cleanup
   clReleaseMemObject(write_buffer);
