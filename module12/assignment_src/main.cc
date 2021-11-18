@@ -35,15 +35,16 @@ int main(int argc, char **argv) {
   cl_command_queue queue;
   cl_mem read_buffer;
   cl_mem write_buffer;
-
   std::vector<int> host_buffer;
 
+  // Get platform_id
   err_num = clGetPlatformIDs(1, &platform_id, nullptr);
   if (err_num != CL_SUCCESS) {
     std::cout << "ERROR: Failed to get OpenCL platform" << std::endl;
     return 1;
   }
 
+  // Get device_id
   err_num =
       clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_GPU, 1, &device_id, nullptr);
   if (err_num != CL_SUCCESS) {
@@ -51,6 +52,7 @@ int main(int argc, char **argv) {
     return 1;
   }
 
+  // Get context
   cl_context_properties context_properties[] = {
       CL_CONTEXT_PLATFORM, (cl_context_properties)platform_id, 0};
   context = clCreateContext(context_properties, 1, &device_id, nullptr, nullptr,
@@ -60,6 +62,7 @@ int main(int argc, char **argv) {
     return 1;
   }
 
+  // Get cell_avg.cl source loaded into memory
   std::string program_source;
   {
     std::ifstream ifs("assignment_src/cell_avg.cl");
@@ -79,6 +82,7 @@ int main(int argc, char **argv) {
     return 1;
   }
 
+  // Create program object
   {
     const char *program_source_cstr = program_source.c_str();
     std::size_t program_source_length = program_source.size();
@@ -91,6 +95,7 @@ int main(int argc, char **argv) {
     }
   }
 
+  // Compile program in program object
   err_num = clBuildProgram(program, 1, &device_id, nullptr, nullptr, nullptr);
   if (err_num != CL_SUCCESS) {
     std::cout << "ERROR: Failed to build OpenCL program" << std::endl;
@@ -105,6 +110,7 @@ int main(int argc, char **argv) {
     return 1;
   }
 
+  // Get kernel object from program object
   kernel = clCreateKernel(program, "cell_avg", &err_num);
   if (err_num != CL_SUCCESS) {
     std::cout << "ERROR: Failed to create OpenCL command queue" << std::endl;
@@ -113,6 +119,7 @@ int main(int argc, char **argv) {
     return 1;
   }
 
+  // Get command_queue "queue"
   queue = clCreateCommandQueue(context, device_id, 0, &err_num);
   if (err_num != CL_SUCCESS) {
     std::cout << "ERROR: Failed to create OpenCL command queue" << std::endl;
@@ -122,6 +129,7 @@ int main(int argc, char **argv) {
     return 1;
   }
 
+  // Set up input data
   host_buffer.clear();
   host_buffer.reserve(kBufferSize);
   for (unsigned int i = 0; i < kBufferSize; ++i) {
@@ -130,6 +138,7 @@ int main(int argc, char **argv) {
   std::cout << "Input buffer:\n";
   PrintIterable<decltype(host_buffer)>(host_buffer, kBufferWidth);
 
+  // Set up read-only OpenCL buffer with input data
   read_buffer =
       clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                      sizeof(int) * kBufferSize, host_buffer.data(), &err_num);
@@ -142,6 +151,7 @@ int main(int argc, char **argv) {
     return 1;
   }
 
+  // Set up write-only OpenCL buffer
   write_buffer = clCreateBuffer(context, CL_MEM_WRITE_ONLY,
                                 sizeof(int) * kBufferSize, nullptr, &err_num);
   if (err_num != CL_SUCCESS) {
@@ -154,6 +164,7 @@ int main(int argc, char **argv) {
     return 1;
   }
 
+  // Set up kernel arg 0 (read_buffer)
   err_num = clSetKernelArg(kernel, 0, sizeof(cl_mem), &read_buffer);
   if (err_num != CL_SUCCESS) {
     std::cout << "ERROR: Failed to set OpenCL kernel arg 0" << std::endl;
@@ -165,6 +176,8 @@ int main(int argc, char **argv) {
     clReleaseContext(context);
     return 1;
   }
+
+  // Set up kernel arg 1 (write_buffer)
   err_num = clSetKernelArg(kernel, 1, sizeof(cl_mem), &write_buffer);
   if (err_num != CL_SUCCESS) {
     std::cout << "ERROR: Failed to set OpenCL kernel arg 1" << std::endl;
@@ -176,6 +189,8 @@ int main(int argc, char **argv) {
     clReleaseContext(context);
     return 1;
   }
+
+  // Set up kernel arg 2 (width)
   err_num = clSetKernelArg(kernel, 2, sizeof(int), &kBufferWidth);
   if (err_num != CL_SUCCESS) {
     std::cout << "ERROR: Failed to set OpenCL kernel arg 2" << std::endl;
@@ -187,6 +202,8 @@ int main(int argc, char **argv) {
     clReleaseContext(context);
     return 1;
   }
+
+  // Set up kernel arg 3 (size)
   err_num = clSetKernelArg(kernel, 3, sizeof(int), &kBufferSize);
   if (err_num != CL_SUCCESS) {
     std::cout << "ERROR: Failed to set OpenCL kernel arg 3" << std::endl;
@@ -199,6 +216,7 @@ int main(int argc, char **argv) {
     return 1;
   }
 
+  // Execute kernel
   std::size_t size = kBufferSize;
   err_num = clEnqueueNDRangeKernel(queue, kernel, 1, nullptr, &size, &size, 0,
                                    nullptr, nullptr);
@@ -213,6 +231,7 @@ int main(int argc, char **argv) {
     return 1;
   }
 
+  // Read result data from "write_buffer"
   err_num = clEnqueueReadBuffer(queue, write_buffer, CL_TRUE, 0,
                                 sizeof(int) * kBufferSize, host_buffer.data(),
                                 0, nullptr, nullptr);
@@ -227,6 +246,7 @@ int main(int argc, char **argv) {
     return 1;
   }
 
+  // Print result data
   std::cout << "Output buffer:\n";
   PrintIterable<decltype(host_buffer)>(host_buffer, kBufferWidth);
 
