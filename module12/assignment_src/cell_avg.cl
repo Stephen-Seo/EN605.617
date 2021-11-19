@@ -1,5 +1,5 @@
 __kernel void cell_avg(__global const int *input_buffer,
-                       __global int *output_buffer,
+                       __global float *output_buffer,
                        const int width,
                        const int size) {
   size_t id = get_global_id(0);
@@ -47,5 +47,5 @@ __kernel void cell_avg(__global const int *input_buffer,
     }
   }
 
-  output_buffer[id] = sum;
+  output_buffer[id] = sum / 4.0F;
 }

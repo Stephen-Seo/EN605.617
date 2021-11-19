@@ -17,7 +17,7 @@ constexpr unsigned int kBufferWidth = 4;
 template <typename Iterable>
 void PrintIterable(Iterable iter, unsigned int row_length) {
   for (unsigned int i = 0; i < iter.size(); ++i) {
-    std::cout << std::setw(2) << iter.at(i) << ' ';
+    std::cout << std::setw(4) << iter.at(i) << ' ';
     if ((i + 1) % row_length == 0) {
       std::cout << '\n';
     }
@@ -153,7 +153,7 @@ cl_int SetUpReadBuffer(cl_context *context, std::vector<int> *host_buffer,
 cl_int SetUpWriteBuffer(cl_context *context, cl_mem *write_buffer) {
   cl_int err_num;
   *write_buffer = clCreateBuffer(*context, CL_MEM_WRITE_ONLY,
-                                 sizeof(int) * kBufferSize, nullptr, &err_num);
+                                 sizeof(float) * kBufferSize, nullptr, &err_num);
   if (err_num != CL_SUCCESS) {
     std::cout << "ERROR: Failed to create OpenCL write_bufer" << std::endl;
   }
@@ -204,10 +204,11 @@ cl_int ExecuteKernel(cl_command_queue *queue, cl_kernel *kernel) {
 }
 
 cl_int ReadResultData(cl_command_queue *queue, cl_mem *write_buffer,
-                      std::vector<int> *host_buffer) {
+                      std::vector<float> *host_out_buffer) {
+  host_out_buffer->resize(kBufferSize);
   cl_int err_num = clEnqueueReadBuffer(
-      *queue, *write_buffer, CL_TRUE, 0, sizeof(int) * kBufferSize,
-      host_buffer->data(), 0, nullptr, nullptr);
+      *queue, *write_buffer, CL_TRUE, 0, sizeof(float) * kBufferSize,
+      host_out_buffer->data(), 0, nullptr, nullptr);
   if (err_num != CL_SUCCESS) {
     std::cout << "ERROR: Failed to read result OpenCL buffer" << std::endl;
   }
@@ -226,6 +227,7 @@ int main(int argc, char **argv) {
   cl_mem read_buffer;
   cl_mem write_buffer;
   std::vector<int> host_buffer;
+  std::vector<float> host_out_buffer;
 
   // get platform_id
   if (GetPlatformID(&platform_id) != CL_SUCCESS) {
@@ -312,7 +314,7 @@ int main(int argc, char **argv) {
   }
 
   // Read result data from "write_buffer"
-  if (ReadResultData(&queue, &write_buffer, &host_buffer) != CL_SUCCESS) {
+  if (ReadResultData(&queue, &write_buffer, &host_out_buffer) != CL_SUCCESS) {
     clReleaseMemObject(write_buffer);
     clReleaseMemObject(read_buffer);
     clReleaseCommandQueue(queue);
@@ -324,7 +326,7 @@ int main(int argc, char **argv) {
 
   // Print result data
   std::cout << "Output buffer:\n";
-  PrintIterable(host_buffer, kBufferWidth);
+  PrintIterable(host_out_buffer, kBufferWidth);
 
   // cleanup
   clReleaseMemObject(write_buffer);
