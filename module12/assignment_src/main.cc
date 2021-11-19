@@ -13,13 +13,25 @@
 
 constexpr unsigned int kBufferSize = 16;
 constexpr unsigned int kBufferWidth = 4;
+constexpr unsigned int kSubBufferSize = 4;
+constexpr unsigned int kActualBufferSize = kBufferSize + kSubBufferSize;
 
 template <typename Iterable>
-void PrintIterable(Iterable iter, unsigned int row_length) {
-  for (unsigned int i = 0; i < iter.size(); ++i) {
-    std::cout << std::setw(4) << iter.at(i) << ' ';
-    if ((i + 1) % row_length == 0) {
-      std::cout << '\n';
+void PrintIterable(Iterable iter, unsigned int row_length,
+                   unsigned int total_size = 0) {
+  if (total_size == 0) {
+    for (unsigned int i = 0; i < iter.size(); ++i) {
+      std::cout << std::setw(4) << iter.at(i) << ' ';
+      if ((i + 1) % row_length == 0) {
+        std::cout << '\n';
+      }
+    }
+  } else {
+    for (unsigned int i = 0; i < total_size; ++i) {
+      std::cout << std::setw(4) << iter.at(i) << ' ';
+      if ((i + 1) % row_length == 0) {
+        std::cout << '\n';
+      }
     }
   }
   std::cout << std::endl;
@@ -39,6 +51,7 @@ cl_int GetDeviceID(const cl_platform_id *platform_id, cl_device_id *device_id) {
   if (err_num != CL_SUCCESS) {
     std::cout << "ERROR: Failed to get OpenCL device" << std::endl;
   }
+
   return err_num;
 }
 
@@ -107,6 +120,13 @@ cl_int GetProgram(cl_context *context, cl_device_id *device_id,
   return CL_SUCCESS;
 }
 
+void CleanupPrograms(std::vector<cl_program> *programs) {
+  for (cl_program program : *programs) {
+    clReleaseProgram(program);
+  }
+  programs->clear();
+}
+
 cl_int GetKernel(cl_program *program, cl_kernel *kernel) {
   cl_int err_num = CL_SUCCESS;
   *kernel = clCreateKernel(*program, "cell_avg", &err_num);
@@ -115,6 +135,13 @@ cl_int GetKernel(cl_program *program, cl_kernel *kernel) {
   }
 
   return err_num;
+}
+
+void CleanupKernels(std::vector<cl_kernel> *kernels) {
+  for (cl_kernel kernel : *kernels) {
+    clReleaseKernel(kernel);
+  }
+  kernels->clear();
 }
 
 cl_int GetQueue(cl_context *context, cl_device_id *device_id,
@@ -130,24 +157,96 @@ cl_int GetQueue(cl_context *context, cl_device_id *device_id,
 
 void InitInputData(std::vector<int> *host_buffer) {
   host_buffer->clear();
-  host_buffer->reserve(kBufferSize);
-  for (unsigned int i = 0; i < kBufferSize; ++i) {
+  host_buffer->reserve(kActualBufferSize);
+  unsigned int i = 0;
+  // Populate first 16 entries
+  for (; i < kBufferSize; ++i) {
     host_buffer->push_back(i);
+  }
+  // Populate repeat of first entries up to kActualBufferSize size
+  // This is so that the sub-buffer doesn't go "out of range"
+  for (; i < kActualBufferSize; ++i) {
+    host_buffer->push_back(host_buffer->at(i - kBufferSize));
   }
 }
 
 cl_int SetUpReadBuffer(cl_context *context, std::vector<int> *host_buffer,
                        cl_mem *read_buffer) {
   cl_int err_num;
-  *read_buffer =
-      clCreateBuffer(*context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                     sizeof(int) * kBufferSize, host_buffer->data(), &err_num);
+  *read_buffer = clCreateBuffer(
+      *context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+      sizeof(int) * kActualBufferSize, host_buffer->data(), &err_num);
 
   if (err_num != CL_SUCCESS) {
     std::cout << "ERROR: Failed to create OpenCL read_bufer" << std::endl;
   }
 
   return err_num;
+}
+
+cl_int SetUpSubBuffers(cl_context *context, cl_command_queue *queue,
+                       cl_mem *read_buffer, std::vector<cl_mem> *sub_buffers) {
+  cl_int err_num;
+  // The following code snippet fails on my system due to alignment error
+  // (CL_MISALIGNED_SUB_BUFFER_OFFSET) when trying to create the sub-buffer with
+  // a non-zero origin value. My system requires an alignment of 128 bytes, so
+  // this fails when requesting a sub-buffer with an offset of 4 bytes. The
+  // alternative is to create regular buffers and copy the sub-regions to them.
+  //
+  // cl_buffer_region region = {
+  //  0,
+  //  sizeof(int) * kSubBufferSize
+  //};
+  // for (unsigned int i = 0; i < kBufferSize; ++i) {
+  //  region.origin = sizeof(int) * i;
+  //  cl_mem sub_buffer = clCreateSubBuffer(*read_buffer, CL_MEM_READ_ONLY,
+  //  CL_BUFFER_CREATE_TYPE_REGION, &region, &err_num); if (err_num !=
+  //  CL_SUCCESS) {
+  //    std::cout << "ERROR: Failed to create OpenCL sub-buffer (iteration "
+  //              << i << ", err_num " << err_num << ")"
+  //              << std::endl;
+  //    break;
+  //  }
+  //  sub_buffers->push_back(sub_buffer);
+  //}
+
+  std::vector<cl_event> copy_events;
+
+  for (unsigned int i = 0; i < kBufferSize; ++i) {
+    cl_mem buffer =
+        clCreateBuffer(*context, CL_MEM_READ_ONLY, sizeof(int) * kSubBufferSize,
+                       nullptr, &err_num);
+    if (err_num != CL_SUCCESS) {
+      std::cout << "ERROR: Failed to create OpenCL \"sub-buffer\"" << std::endl;
+      break;
+    }
+    cl_event event;
+    err_num =
+        clEnqueueCopyBuffer(*queue, *read_buffer, buffer, i * sizeof(int), 0,
+                            sizeof(int) * kSubBufferSize, 0, nullptr, &event);
+    if (err_num != CL_SUCCESS) {
+      std::cout << "ERROR: Failed to copy from read_buffer to \"sub-buffer\""
+                   " (err_num is "
+                << err_num << ")" << std::endl;
+      break;
+    }
+    copy_events.push_back(event);
+    sub_buffers->push_back(buffer);
+  }
+
+  clWaitForEvents(copy_events.size(), copy_events.data());
+  for (cl_event event : copy_events) {
+    clReleaseEvent(event);
+  }
+
+  return err_num;
+}
+
+void CleanUpSubBuffers(std::vector<cl_mem> *sub_buffers) {
+  for (cl_mem sub_buffer : *sub_buffers) {
+    clReleaseMemObject(sub_buffer);
+  }
+  sub_buffers->clear();
 }
 
 cl_int SetUpWriteBuffer(cl_context *context, cl_mem *write_buffer) {
@@ -162,11 +261,11 @@ cl_int SetUpWriteBuffer(cl_context *context, cl_mem *write_buffer) {
   return err_num;
 }
 
-cl_int SetKernelArgs(cl_kernel *kernel, cl_mem *read_buffer,
-                     cl_mem *write_buffer) {
+cl_int SetKernelArgs(cl_kernel *kernel, cl_mem *sub_buffer,
+                     cl_mem *write_buffer, int idx) {
   cl_int err_num;
 
-  err_num = clSetKernelArg(*kernel, 0, sizeof(cl_mem), read_buffer);
+  err_num = clSetKernelArg(*kernel, 0, sizeof(cl_mem), sub_buffer);
   if (err_num != CL_SUCCESS) {
     std::cout << "ERROR: Failed to set OpenCL kernel arg 0" << std::endl;
     return err_num;
@@ -178,13 +277,13 @@ cl_int SetKernelArgs(cl_kernel *kernel, cl_mem *read_buffer,
     return err_num;
   }
 
-  err_num = clSetKernelArg(*kernel, 2, sizeof(int), &kBufferWidth);
+  err_num = clSetKernelArg(*kernel, 2, sizeof(int), &kSubBufferSize);
   if (err_num != CL_SUCCESS) {
     std::cout << "ERROR: Failed to set OpenCL kernel arg 2" << std::endl;
     return err_num;
   }
 
-  err_num = clSetKernelArg(*kernel, 3, sizeof(int), &kBufferSize);
+  err_num = clSetKernelArg(*kernel, 3, sizeof(int), &idx);
   if (err_num != CL_SUCCESS) {
     std::cout << "ERROR: Failed to set OpenCL kernel arg 3" << std::endl;
     return err_num;
@@ -193,12 +292,29 @@ cl_int SetKernelArgs(cl_kernel *kernel, cl_mem *read_buffer,
   return CL_SUCCESS;
 }
 
-cl_int ExecuteKernel(cl_command_queue *queue, cl_kernel *kernel) {
-  std::size_t size = kBufferSize;
+cl_int ExecuteKernel(cl_command_queue *queue, cl_kernel *kernel,
+                     cl_event *event) {
+  std::size_t size = 1;
   cl_int err_num = clEnqueueNDRangeKernel(*queue, *kernel, 1, nullptr, &size,
-                                          &size, 0, nullptr, nullptr);
+                                          &size, 0, nullptr, event);
   if (err_num != CL_SUCCESS) {
     std::cout << "ERROR: Failed to execute OpenCL kernel" << std::endl;
+  }
+
+  return err_num;
+}
+
+void CleanupEvents(std::vector<cl_event> *events) {
+  for (cl_event event : *events) {
+    clReleaseEvent(event);
+  }
+  events->clear();
+}
+
+cl_int WaitForKernelsToFinish(std::vector<cl_event> *events) {
+  cl_int err_num = clWaitForEvents(kBufferSize, events->data()) != CL_SUCCESS;
+  if (err_num != CL_SUCCESS) {
+    std::cout << "ERROR: Failed to wait on kernel exeuctions" << std::endl;
   }
 
   return err_num;
@@ -222,11 +338,13 @@ int main(int argc, char **argv) {
   cl_platform_id platform_id;
   cl_device_id device_id;
   cl_context context;
-  cl_program program;
-  cl_kernel kernel;
+  std::vector<cl_program> programs;
+  std::vector<cl_kernel> kernels;
   cl_command_queue queue;
   cl_mem read_buffer;
+  std::vector<cl_mem> sub_buffers;
   cl_mem write_buffer;
+  std::vector<cl_event> events;
   std::vector<int> host_buffer;
   std::vector<float> host_out_buffer;
 
@@ -245,23 +363,33 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  // Get program
-  if (GetProgram(&context, &device_id, &program) != CL_SUCCESS) {
-    clReleaseContext(context);
-    return 1;
+  // Get programs
+  for (unsigned int i = 0; i < kBufferSize; ++i) {
+    cl_program program;
+    if (GetProgram(&context, &device_id, &program) != CL_SUCCESS) {
+      CleanupPrograms(&programs);
+      clReleaseContext(context);
+      return 1;
+    }
+    programs.push_back(program);
   }
 
-  // Get kernel object from program object
-  if (GetKernel(&program, &kernel) != CL_SUCCESS) {
-    clReleaseProgram(program);
-    clReleaseContext(context);
-    return 1;
+  // Get kernel objects from program objects
+  for (unsigned int i = 0; i < kBufferSize; ++i) {
+    cl_kernel kernel;
+    if (GetKernel(&programs.at(i), &kernel) != CL_SUCCESS) {
+      CleanupKernels(&kernels);
+      CleanupPrograms(&programs);
+      clReleaseContext(context);
+      return 1;
+    }
+    kernels.push_back(kernel);
   }
 
   // Get command_queue "queue"
   if (GetQueue(&context, &device_id, &queue) != CL_SUCCESS) {
-    clReleaseKernel(kernel);
-    clReleaseProgram(program);
+    CleanupKernels(&kernels);
+    CleanupPrograms(&programs);
     clReleaseContext(context);
     return 1;
   }
@@ -271,56 +399,94 @@ int main(int argc, char **argv) {
 
   // Output input data
   std::cout << "Input buffer:\n";
-  PrintIterable(host_buffer, kBufferWidth);
+  PrintIterable(host_buffer, kBufferWidth, kBufferSize);
 
   // Set up read-only OpenCL buffer with input data
   if (SetUpReadBuffer(&context, &host_buffer, &read_buffer) != CL_SUCCESS) {
     clReleaseCommandQueue(queue);
-    clReleaseKernel(kernel);
-    clReleaseProgram(program);
+    CleanupKernels(&kernels);
+    CleanupPrograms(&programs);
+    clReleaseContext(context);
+    return 1;
+  }
+
+  // Set up read-only OpenCL sub-buffers with existing read_buffer
+  if (SetUpSubBuffers(&context, &queue, &read_buffer, &sub_buffers) !=
+      CL_SUCCESS) {
+    CleanUpSubBuffers(&sub_buffers);
+    clReleaseMemObject(read_buffer);
+    clReleaseCommandQueue(queue);
+    CleanupKernels(&kernels);
+    CleanupPrograms(&programs);
     clReleaseContext(context);
     return 1;
   }
 
   // Set up write-only OpenCL buffer
   if (SetUpWriteBuffer(&context, &write_buffer) != CL_SUCCESS) {
+    CleanUpSubBuffers(&sub_buffers);
     clReleaseMemObject(read_buffer);
     clReleaseCommandQueue(queue);
-    clReleaseKernel(kernel);
-    clReleaseProgram(program);
+    CleanupKernels(&kernels);
+    CleanupPrograms(&programs);
     clReleaseContext(context);
     return 1;
   }
 
   // Set up kernel args
-  if (SetKernelArgs(&kernel, &read_buffer, &write_buffer) != CL_SUCCESS) {
-    clReleaseMemObject(write_buffer);
-    clReleaseMemObject(read_buffer);
-    clReleaseCommandQueue(queue);
-    clReleaseKernel(kernel);
-    clReleaseProgram(program);
-    clReleaseContext(context);
-    return 1;
+  for (unsigned int i = 0; i < kBufferSize; ++i) {
+    if (SetKernelArgs(&kernels.at(i), &sub_buffers.at(i), &write_buffer, i) !=
+        CL_SUCCESS) {
+      CleanUpSubBuffers(&sub_buffers);
+      clReleaseMemObject(write_buffer);
+      clReleaseMemObject(read_buffer);
+      clReleaseCommandQueue(queue);
+      CleanupKernels(&kernels);
+      CleanupPrograms(&programs);
+      clReleaseContext(context);
+      return 1;
+    }
   }
 
   // Execute kernel
-  if (ExecuteKernel(&queue, &kernel) != CL_SUCCESS) {
+  for (unsigned int i = 0; i < kBufferSize; ++i) {
+    cl_event event;
+    if (ExecuteKernel(&queue, &kernels.at(i), &event) != CL_SUCCESS) {
+      CleanupEvents(&events);
+      CleanUpSubBuffers(&sub_buffers);
+      clReleaseMemObject(write_buffer);
+      clReleaseMemObject(read_buffer);
+      clReleaseCommandQueue(queue);
+      CleanupKernels(&kernels);
+      CleanupPrograms(&programs);
+      clReleaseContext(context);
+      return 1;
+    }
+    events.push_back(event);
+  }
+
+  // Wait for kernel executions to finish
+  if (WaitForKernelsToFinish(&events) != CL_SUCCESS) {
+    CleanupEvents(&events);
+    CleanUpSubBuffers(&sub_buffers);
     clReleaseMemObject(write_buffer);
     clReleaseMemObject(read_buffer);
     clReleaseCommandQueue(queue);
-    clReleaseKernel(kernel);
-    clReleaseProgram(program);
+    CleanupKernels(&kernels);
+    CleanupPrograms(&programs);
     clReleaseContext(context);
     return 1;
   }
 
   // Read result data from "write_buffer"
   if (ReadResultData(&queue, &write_buffer, &host_out_buffer) != CL_SUCCESS) {
+    CleanupEvents(&events);
+    CleanUpSubBuffers(&sub_buffers);
     clReleaseMemObject(write_buffer);
     clReleaseMemObject(read_buffer);
     clReleaseCommandQueue(queue);
-    clReleaseKernel(kernel);
-    clReleaseProgram(program);
+    CleanupKernels(&kernels);
+    CleanupPrograms(&programs);
     clReleaseContext(context);
     return 1;
   }
@@ -330,11 +496,13 @@ int main(int argc, char **argv) {
   PrintIterable(host_out_buffer, kBufferWidth);
 
   // cleanup
+  CleanupEvents(&events);
+  CleanUpSubBuffers(&sub_buffers);
   clReleaseMemObject(write_buffer);
   clReleaseMemObject(read_buffer);
   clReleaseCommandQueue(queue);
-  clReleaseKernel(kernel);
-  clReleaseProgram(program);
+  CleanupKernels(&kernels);
+  CleanupPrograms(&programs);
   clReleaseContext(context);
   return 0;
 }
