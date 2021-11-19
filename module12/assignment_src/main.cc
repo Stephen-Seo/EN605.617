@@ -20,6 +20,7 @@ template <typename Iterable>
 void PrintIterable(Iterable iter, unsigned int row_length,
                    unsigned int total_size = 0) {
   if (total_size == 0) {
+    // Just print the entire Iterable
     for (unsigned int i = 0; i < iter.size(); ++i) {
       std::cout << std::setw(4) << iter.at(i) << ' ';
       if ((i + 1) % row_length == 0) {
@@ -27,6 +28,7 @@ void PrintIterable(Iterable iter, unsigned int row_length,
       }
     }
   } else {
+    // Print up to "total_size" entries
     for (unsigned int i = 0; i < total_size; ++i) {
       std::cout << std::setw(4) << iter.at(i) << ' ';
       if ((i + 1) % row_length == 0) {
@@ -213,6 +215,7 @@ cl_int SetUpSubBuffers(cl_context *context, cl_command_queue *queue,
   std::vector<cl_event> copy_events;
 
   for (unsigned int i = 0; i < kBufferSize; ++i) {
+    // Create "sub-buffer" (just a regular buffer actually)
     cl_mem buffer =
         clCreateBuffer(*context, CL_MEM_READ_ONLY, sizeof(int) * kSubBufferSize,
                        nullptr, &err_num);
@@ -220,6 +223,8 @@ cl_int SetUpSubBuffers(cl_context *context, cl_command_queue *queue,
       std::cout << "ERROR: Failed to create OpenCL \"sub-buffer\"" << std::endl;
       break;
     }
+
+    // copy data with offset to "sub-buffer"
     cl_event event;
     err_num =
         clEnqueueCopyBuffer(*queue, *read_buffer, buffer, i * sizeof(int), 0,
@@ -234,6 +239,7 @@ cl_int SetUpSubBuffers(cl_context *context, cl_command_queue *queue,
     sub_buffers->push_back(buffer);
   }
 
+  // wait for buffer-to-buffer copies to finish
   clWaitForEvents(copy_events.size(), copy_events.data());
   for (cl_event event : copy_events) {
     clReleaseEvent(event);
