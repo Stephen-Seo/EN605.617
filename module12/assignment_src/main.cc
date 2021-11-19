@@ -152,8 +152,9 @@ cl_int SetUpReadBuffer(cl_context *context, std::vector<int> *host_buffer,
 
 cl_int SetUpWriteBuffer(cl_context *context, cl_mem *write_buffer) {
   cl_int err_num;
-  *write_buffer = clCreateBuffer(*context, CL_MEM_WRITE_ONLY,
-                                 sizeof(float) * kBufferSize, nullptr, &err_num);
+  *write_buffer =
+      clCreateBuffer(*context, CL_MEM_WRITE_ONLY, sizeof(float) * kBufferSize,
+                     nullptr, &err_num);
   if (err_num != CL_SUCCESS) {
     std::cout << "ERROR: Failed to create OpenCL write_bufer" << std::endl;
   }
