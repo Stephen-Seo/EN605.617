@@ -78,9 +78,9 @@ cl_int GetProgram(cl_context *context, cl_device_id *device_id,
   // get program source
   std::string program_source;
   {
-    std::ifstream ifs("assignment_src/cell_avg.cl");
+    std::ifstream ifs("assignment_src/cell_avg_once.cl");
     if (!ifs.is_open()) {
-      std::cout << "ERROR: Failed to open \"assignment_src/cell_avg.cl\""
+      std::cout << "ERROR: Failed to open \"assignment_src/cell_avg_once.cl\""
                 << std::endl;
       return ~CL_SUCCESS;
     }
@@ -88,7 +88,7 @@ cl_int GetProgram(cl_context *context, cl_device_id *device_id,
                                  std::istreambuf_iterator<char>{});
   }
   if (program_source.empty()) {
-    std::cout << "ERROR: Failed to read \"assignment_src/cell_avg.cl\""
+    std::cout << "ERROR: Failed to read \"assignment_src/cell_avg_once.cl\""
               << std::endl;
     return ~CL_SUCCESS;
   }
@@ -131,7 +131,7 @@ void CleanupPrograms(std::vector<cl_program> *programs) {
 
 cl_int GetKernel(cl_program *program, cl_kernel *kernel) {
   cl_int err_num = CL_SUCCESS;
-  *kernel = clCreateKernel(*program, "cell_avg", &err_num);
+  *kernel = clCreateKernel(*program, "cell_avg_once", &err_num);
   if (err_num != CL_SUCCESS) {
     std::cout << "ERROR: Failed to create OpenCL command queue" << std::endl;
   }
@@ -191,9 +191,10 @@ cl_int SetUpSubBuffers(cl_context *context, cl_command_queue *queue,
   cl_int err_num;
   // The following code snippet fails on my system due to alignment error
   // (CL_MISALIGNED_SUB_BUFFER_OFFSET) when trying to create the sub-buffer with
-  // a non-zero origin value. My system requires an alignment of 128 bytes, so
-  // this fails when requesting a sub-buffer with an offset of 4 bytes. The
-  // alternative is to create regular buffers and copy the sub-regions to them.
+  // a non-zero origin value. My system requires an alignment of 128 bytes (1024
+  // bits), so this fails when requesting a sub-buffer with an offset of 4
+  // bytes. The alternative is to create regular buffers and copy the
+  // sub-regions to them.
   //
   // cl_buffer_region region = {
   //  0,
@@ -339,6 +340,68 @@ cl_int ReadResultData(cl_command_queue *queue, cl_mem *write_buffer,
   return err_num;
 }
 
+cl_int DoCellAvgWithSubBuffers(cl_context *context, cl_device_id *device_id,
+                            cl_command_queue *queue,
+                            std::vector<cl_program> *programs,
+                            std::vector<cl_kernel> *kernels,
+                            cl_mem *read_buffer, cl_mem *write_buffer,
+                            std::vector<cl_mem> *sub_buffers,
+                            std::vector<cl_event> *events) {
+  cl_int err_num;
+  // Get programs
+  for (unsigned int i = 0; i < kBufferSize; ++i) {
+    cl_program program;
+    err_num = GetProgram(context, device_id, &program);
+    if (err_num != CL_SUCCESS) {
+      return err_num;
+    }
+    programs->push_back(program);
+  }
+
+  // Get kernel objects from program objects
+  for (unsigned int i = 0; i < kBufferSize; ++i) {
+    cl_kernel kernel;
+    err_num = GetKernel(&programs->at(i), &kernel);
+    if (err_num != CL_SUCCESS) {
+      return err_num;
+    }
+    kernels->push_back(kernel);
+  }
+
+  // Set up read-only OpenCL sub-buffers with existing read_buffer
+  err_num = SetUpSubBuffers(context, queue, read_buffer, sub_buffers);
+  if (err_num != CL_SUCCESS) {
+    return err_num;
+  }
+
+  // Set up kernel args
+  for (unsigned int i = 0; i < kBufferSize; ++i) {
+    err_num =
+        SetKernelArgs(&kernels->at(i), &sub_buffers->at(i), write_buffer, i);
+    if (err_num != CL_SUCCESS) {
+      return err_num;
+    }
+  }
+
+  // Execute kernel
+  for (unsigned int i = 0; i < kBufferSize; ++i) {
+    cl_event event;
+    err_num = ExecuteKernel(queue, &kernels->at(i), &event);
+    if (err_num != CL_SUCCESS) {
+      return err_num;
+    }
+    events->push_back(event);
+  }
+
+  // Wait for kernel executions to finish
+  err_num = WaitForKernelsToFinish(events);
+  if (err_num != CL_SUCCESS) {
+    return err_num;
+  }
+
+  return CL_SUCCESS;
+}
+
 int main(int argc, char **argv) {
   cl_int err_num;
   cl_platform_id platform_id;
@@ -369,29 +432,6 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  // Get programs
-  for (unsigned int i = 0; i < kBufferSize; ++i) {
-    cl_program program;
-    if (GetProgram(&context, &device_id, &program) != CL_SUCCESS) {
-      CleanupPrograms(&programs);
-      clReleaseContext(context);
-      return 1;
-    }
-    programs.push_back(program);
-  }
-
-  // Get kernel objects from program objects
-  for (unsigned int i = 0; i < kBufferSize; ++i) {
-    cl_kernel kernel;
-    if (GetKernel(&programs.at(i), &kernel) != CL_SUCCESS) {
-      CleanupKernels(&kernels);
-      CleanupPrograms(&programs);
-      clReleaseContext(context);
-      return 1;
-    }
-    kernels.push_back(kernel);
-  }
-
   // Get command_queue "queue"
   if (GetQueue(&context, &device_id, &queue) != CL_SUCCESS) {
     CleanupKernels(&kernels);
@@ -416,21 +456,8 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  // Set up read-only OpenCL sub-buffers with existing read_buffer
-  if (SetUpSubBuffers(&context, &queue, &read_buffer, &sub_buffers) !=
-      CL_SUCCESS) {
-    CleanUpSubBuffers(&sub_buffers);
-    clReleaseMemObject(read_buffer);
-    clReleaseCommandQueue(queue);
-    CleanupKernels(&kernels);
-    CleanupPrograms(&programs);
-    clReleaseContext(context);
-    return 1;
-  }
-
   // Set up write-only OpenCL buffer
   if (SetUpWriteBuffer(&context, &write_buffer) != CL_SUCCESS) {
-    CleanUpSubBuffers(&sub_buffers);
     clReleaseMemObject(read_buffer);
     clReleaseCommandQueue(queue);
     CleanupKernels(&kernels);
@@ -439,40 +466,9 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  // Set up kernel args
-  for (unsigned int i = 0; i < kBufferSize; ++i) {
-    if (SetKernelArgs(&kernels.at(i), &sub_buffers.at(i), &write_buffer, i) !=
-        CL_SUCCESS) {
-      CleanUpSubBuffers(&sub_buffers);
-      clReleaseMemObject(write_buffer);
-      clReleaseMemObject(read_buffer);
-      clReleaseCommandQueue(queue);
-      CleanupKernels(&kernels);
-      CleanupPrograms(&programs);
-      clReleaseContext(context);
-      return 1;
-    }
-  }
-
-  // Execute kernel
-  for (unsigned int i = 0; i < kBufferSize; ++i) {
-    cl_event event;
-    if (ExecuteKernel(&queue, &kernels.at(i), &event) != CL_SUCCESS) {
-      CleanupEvents(&events);
-      CleanUpSubBuffers(&sub_buffers);
-      clReleaseMemObject(write_buffer);
-      clReleaseMemObject(read_buffer);
-      clReleaseCommandQueue(queue);
-      CleanupKernels(&kernels);
-      CleanupPrograms(&programs);
-      clReleaseContext(context);
-      return 1;
-    }
-    events.push_back(event);
-  }
-
-  // Wait for kernel executions to finish
-  if (WaitForKernelsToFinish(&events) != CL_SUCCESS) {
+  if (DoCellAvgWithSubBuffers(&context, &device_id, &queue, &programs, &kernels,
+                           &read_buffer, &write_buffer, &sub_buffers,
+                           &events) != CL_SUCCESS) {
     CleanupEvents(&events);
     CleanUpSubBuffers(&sub_buffers);
     clReleaseMemObject(write_buffer);
