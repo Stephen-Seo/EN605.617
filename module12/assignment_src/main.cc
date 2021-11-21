@@ -414,6 +414,7 @@ cl_int DoCellAvgWithSubBuffers(cl_context *context, cl_device_id *device_id,
     // Time kernels
     unsigned long long total_count = 0;
     for (unsigned int i = 0; i < 25; ++i) {
+      CleanupEvents(events);
       auto start_time = std::chrono::high_resolution_clock::now();
       for (unsigned int j = 0; j < kBufferSize; ++j) {
         cl_event event;
