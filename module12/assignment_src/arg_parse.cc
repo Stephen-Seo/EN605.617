@@ -36,6 +36,7 @@ void Args::DisplayHelp() {
   std::cout << "[-h | --help] [-t | --timings] [-a | --alt]\n"
                "  -h | --help\t\tDisplay this usage text\n"
                "  -t | --timings\t\tGet timings of kernel execution(s)\n"
-               "  -a | --alt\t\tUse alternate kernel"
+               "  -a | --alt\t\tUse alternate kernel\n"
+               "    If using run.sh, prepend flags with \"bsb\""
             << std::endl;
 }
