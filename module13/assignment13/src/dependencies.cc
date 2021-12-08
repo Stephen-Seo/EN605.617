@@ -1,8 +1,36 @@
 #include "dependencies.h"
 
+#include <iostream>
 #include <queue>
 
-const std::unordered_set<unsigned int> Dependencies::empty_set_ = {};
+const std::unordered_set<unsigned int> kEmptySet = {};
+
+ReverseDependencies::ReverseDependencies() : reverse_deps_() {}
+
+ReverseDependencies::ReverseDependencies(DMap reverse_deps)
+    : reverse_deps_(reverse_deps) {}
+
+std::unordered_set<unsigned int> ReverseDependencies::GetDependencies() const {
+  std::unordered_set<unsigned int> dependencies;
+
+  for (const auto &pair : reverse_deps_) {
+    dependencies.insert(pair.first);
+  }
+
+  return dependencies;
+}
+
+const std::unordered_set<unsigned int>
+    &ReverseDependencies::GetReverseDependents(unsigned int to) const {
+  auto iter = reverse_deps_.find(to);
+  if (iter != reverse_deps_.end()) {
+    return iter->second;
+  } else {
+    return kEmptySet;
+  }
+}
+
+bool ReverseDependencies::IsEmpty() const { return reverse_deps_.empty(); }
 
 Dependencies::Dependencies() : deps_() {}
 
@@ -35,11 +63,21 @@ bool Dependencies::RemoveDepenency(unsigned int from, unsigned int to) {
   }
 }
 
+std::unordered_set<unsigned int> Dependencies::GetDependents() const {
+  std::unordered_set<unsigned int> dependents;
+
+  for (auto &pair : deps_) {
+    dependents.insert(pair.first);
+  }
+
+  return dependents;
+}
+
 const std::unordered_set<unsigned int> &Dependencies::GetDependencies(
     unsigned int from) const {
   auto iter = deps_.find(from);
   if (iter == deps_.end()) {
-    return empty_set_;
+    return kEmptySet;
   } else {
     return iter->second;
   }
@@ -55,6 +93,23 @@ std::unique_ptr<unsigned int> Dependencies::HasCycle() const {
   }
 
   return {};
+}
+
+ReverseDependencies Dependencies::GenerateReverseDependencies() const {
+  Dependencies fauxDependencies{};
+
+  for (const auto &pair : deps_) {
+    for (unsigned int to : pair.second) {
+      if (!fauxDependencies.AddDependency(to, pair.first)) {
+        std::cout << "ERROR Dependencies::GenerateReverseDependencies: "
+                     "Internal error reversing deps"
+                  << std::endl;
+        return ReverseDependencies{};
+      }
+    }
+  }
+
+  return ReverseDependencies(fauxDependencies.deps_);
 }
 
 bool Dependencies::CycleFromValue(unsigned int value) const {

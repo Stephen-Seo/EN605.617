@@ -5,6 +5,34 @@
 #include <unordered_map>
 #include <unordered_set>
 
+extern const std::unordered_set<unsigned int> kEmptySet;
+
+typedef std::unordered_map<unsigned int, std::unordered_set<unsigned int>> DMap;
+
+class ReverseDependencies {
+ public:
+  // allow copy
+  ReverseDependencies(const ReverseDependencies &other) = default;
+  ReverseDependencies &operator=(const ReverseDependencies &other) = default;
+
+  // allow move
+  ReverseDependencies(ReverseDependencies &&other) = default;
+  ReverseDependencies &operator=(ReverseDependencies &&other) = default;
+
+  std::unordered_set<unsigned int> GetDependencies() const;
+  const std::unordered_set<unsigned int> &GetReverseDependents(
+      unsigned int to) const;
+
+  bool IsEmpty() const;
+
+ private:
+  friend class Dependencies;
+  ReverseDependencies();
+  ReverseDependencies(DMap reverse_deps);
+
+  DMap reverse_deps_;
+};
+
 class Dependencies {
  public:
   Dependencies();
@@ -22,6 +50,7 @@ class Dependencies {
   /// Returns true if specified dependency was found and removed
   bool RemoveDepenency(unsigned int from, unsigned int to);
 
+  std::unordered_set<unsigned int> GetDependents() const;
   const std::unordered_set<unsigned int> &GetDependencies(
       unsigned int from) const;
 
@@ -29,9 +58,10 @@ class Dependencies {
 
   std::unique_ptr<unsigned int> HasCycle() const;
 
+  ReverseDependencies GenerateReverseDependencies() const;
+
  private:
-  std::unordered_map<unsigned int, std::unordered_set<unsigned int>> deps_;
-  static const std::unordered_set<unsigned int> empty_set_;
+  DMap deps_;
 
   bool CycleFromValue(unsigned int value) const;
 };

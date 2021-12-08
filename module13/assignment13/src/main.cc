@@ -30,5 +30,13 @@ int main(int argc, char **argv) {
     return 4;
   }
 
+  ReverseDependencies reverseDeps = deps.GenerateReverseDependencies();
+  if (reverseDeps.IsEmpty()) {
+    std::cout << "ERROR: reverseDeps is empty (internal error?)" << std::endl;
+    Args::PrintUsage();
+    return 5;
+  }
+
+  std::cout << "Program executed successfully" << std::endl;
   return 0;
 }
