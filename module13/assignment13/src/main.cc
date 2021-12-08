@@ -37,7 +37,7 @@ int main(int argc, char **argv) {
     return 5;
   }
 
-  auto stages = reverseDeps.GetDependenciesOrdered(&deps);
+  auto stages = reverseDeps.GetDependenciesOrdered();
 
   std::cout << "Printing stages:" << std::endl;
   for (unsigned int i = 0; i < stages.size(); ++i) {

@@ -10,9 +10,6 @@ extern const std::unordered_set<unsigned int> kEmptySet;
 
 typedef std::unordered_map<unsigned int, std::unordered_set<unsigned int>> DMap;
 
-// Forward declaration
-class Dependencies;
-
 class ReverseDependencies {
  public:
   // allow copy
@@ -29,15 +26,15 @@ class ReverseDependencies {
 
   bool IsEmpty() const;
 
-  std::vector<std::vector<unsigned int>> GetDependenciesOrdered(
-      const Dependencies *deps_obj) const;
+  std::vector<std::vector<unsigned int>> GetDependenciesOrdered() const;
 
  private:
   friend class Dependencies;
   ReverseDependencies();
-  ReverseDependencies(DMap reverse_deps);
+  ReverseDependencies(DMap reverse_deps, DMap deps);
 
   DMap reverse_deps_;
+  DMap deps_;
 };
 
 class Dependencies {

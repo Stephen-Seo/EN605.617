@@ -7,8 +7,8 @@ const std::unordered_set<unsigned int> kEmptySet = {};
 
 ReverseDependencies::ReverseDependencies() : reverse_deps_() {}
 
-ReverseDependencies::ReverseDependencies(DMap reverse_deps)
-    : reverse_deps_(reverse_deps) {}
+ReverseDependencies::ReverseDependencies(DMap reverse_deps, DMap deps)
+    : reverse_deps_(reverse_deps), deps_(deps) {}
 
 std::unordered_set<unsigned int> ReverseDependencies::GetDependencies() const {
   std::unordered_set<unsigned int> dependencies;
@@ -33,8 +33,7 @@ const std::unordered_set<unsigned int>
 bool ReverseDependencies::IsEmpty() const { return reverse_deps_.empty(); }
 
 std::vector<std::vector<unsigned int>>
-ReverseDependencies::GetDependenciesOrdered(
-    const Dependencies *deps_obj) const {
+ReverseDependencies::GetDependenciesOrdered() const {
   std::vector<std::vector<unsigned int>> stages;
   std::vector<unsigned int> stage;
   std::unordered_set<unsigned int> visited;
@@ -82,7 +81,11 @@ ReverseDependencies::GetDependenciesOrdered(
       }
 
       // not in visited, check deps
-      auto deps = deps_obj->GetDependencies(*iter);
+      std::unordered_set<unsigned int> deps;
+      auto deps_iter = deps_.find(*iter);
+      if (deps_iter != deps_.end()) {
+        deps = deps_iter->second;
+      }
       for (unsigned int visited_value : visited) {
         deps.erase(visited_value);
       }
@@ -197,7 +200,7 @@ ReverseDependencies Dependencies::GenerateReverseDependencies() const {
     return ReverseDependencies{};
   }
 
-  return ReverseDependencies(fauxDependencies.deps_);
+  return ReverseDependencies(fauxDependencies.deps_, deps_);
 }
 
 bool Dependencies::CycleFromValue(unsigned int value) const {
