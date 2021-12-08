@@ -2,7 +2,9 @@ NVCC ?= /usr/bin/env nvcc
 
 SOURCES = \
 	src/main.cc \
-	src/arg_parse.cc
+	src/arg_parse.cc \
+	src/csv_parser.cc \
+	src/dependencies.cc
 
 all: assignment13
 

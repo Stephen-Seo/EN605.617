@@ -1,3 +1,34 @@
+#include <fstream>
+#include <iostream>
+
+#include "arg_parse.h"
+#include "csv_parser.h"
+#include "dependencies.h"
+
 int main(int argc, char **argv) {
-    return 0;
+  Args args{};
+
+  if (!args.ParseArgs(argc, argv)) {
+    return 1;
+  } else if (args.input_filename.empty()) {
+    std::cout << "ERROR: Input filename is an empty string" << std::endl;
+    return 2;
+  }
+
+  Dependencies deps = DepsCSVParser::GetDepsFromCSV(args.input_filename);
+  if (deps.IsEmpty()) {
+    std::cout << "ERROR: Got emtpy Dependencies object from CSV \""
+              << args.input_filename << '"' << std::endl;
+    return 3;
+  }
+
+  auto cycle_start = deps.HasCycle();
+  if (cycle_start) {
+    std::cout << "ERROR: Dependencies object has a cycle starting at "
+              << *cycle_start << std::endl;
+    Args::PrintUsage();
+    return 4;
+  }
+
+  return 0;
 }

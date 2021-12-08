@@ -6,7 +6,7 @@
 struct Args {
   Args();
 
-  /// Returns true if help was printed
+  /// Returns true on success
   bool ParseArgs(int argc, char **argv);
 
   static void PrintUsage();
