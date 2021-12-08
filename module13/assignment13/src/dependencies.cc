@@ -5,7 +5,7 @@
 
 const std::unordered_set<unsigned int> kEmptySet = {};
 
-ReverseDependencies::ReverseDependencies() : reverse_deps_() {}
+ReverseDependencies::ReverseDependencies() : reverse_deps_(), deps_() {}
 
 ReverseDependencies::ReverseDependencies(DMap reverse_deps, DMap deps)
     : reverse_deps_(reverse_deps), deps_(deps) {}
@@ -30,7 +30,9 @@ const std::unordered_set<unsigned int>
   }
 }
 
-bool ReverseDependencies::IsEmpty() const { return reverse_deps_.empty(); }
+bool ReverseDependencies::IsEmpty() const {
+  return reverse_deps_.empty() || deps_.empty();
+}
 
 std::vector<std::vector<unsigned int>>
 ReverseDependencies::GetDependenciesOrdered() const {
