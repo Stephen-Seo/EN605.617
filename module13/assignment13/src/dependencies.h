@@ -4,10 +4,14 @@
 #include <memory>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
 extern const std::unordered_set<unsigned int> kEmptySet;
 
 typedef std::unordered_map<unsigned int, std::unordered_set<unsigned int>> DMap;
+
+// Forward declaration
+class Dependencies;
 
 class ReverseDependencies {
  public:
@@ -24,6 +28,9 @@ class ReverseDependencies {
       unsigned int to) const;
 
   bool IsEmpty() const;
+
+  std::vector<std::vector<unsigned int>> GetDependenciesOrdered(
+      const Dependencies *deps_obj) const;
 
  private:
   friend class Dependencies;

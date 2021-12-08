@@ -32,6 +32,87 @@ const std::unordered_set<unsigned int>
 
 bool ReverseDependencies::IsEmpty() const { return reverse_deps_.empty(); }
 
+std::vector<std::vector<unsigned int>>
+ReverseDependencies::GetDependenciesOrdered(
+    const Dependencies *deps_obj) const {
+  std::vector<std::vector<unsigned int>> stages;
+  std::vector<unsigned int> stage;
+  std::unordered_set<unsigned int> visited;
+  std::unordered_set<unsigned int> to_visit;
+  std::vector<unsigned int> holding;
+
+  // first use visited as a count
+  for (const auto &pair : reverse_deps_) {
+    visited.insert(pair.first);
+    for (unsigned int value : pair.second) {
+      visited.insert(value);
+    }
+  }
+
+  unsigned int item_count = visited.size();
+  visited.clear();
+
+  // set up "to_visit" which will hold candidates for the next stage
+  for (const auto &pair : reverse_deps_) {
+    to_visit.insert(pair.first);
+  }
+
+  // Now get all stages where "visited" accounts for previous stages
+  while (visited.size() < item_count) {
+    stage.clear();
+    // push items in "holding" to "to_visit" that isn't in "visited"
+    for (unsigned int rdep : holding) {
+      if (visited.find(rdep) == visited.end()) {
+        to_visit.insert(rdep);
+      }
+    }
+    holding.clear();
+
+    // check each item in "to_visit" as they are candidates for the stage
+    for (auto iter = to_visit.begin(); iter != to_visit.end();) {
+      if (visited.find(*iter) != visited.end()) {
+        // already in visited, put rdeps in "holding" and continue
+        auto rdeps = GetReverseDependents(*iter);
+        for (unsigned int reverse_dep : rdeps) {
+          holding.push_back(reverse_dep);
+        }
+
+        iter = to_visit.erase(iter);
+        continue;
+      }
+
+      // not in visited, check deps
+      auto deps = deps_obj->GetDependencies(*iter);
+      for (unsigned int visited_value : visited) {
+        deps.erase(visited_value);
+      }
+      if (deps.empty()) {
+        // no current deps, is a valid candidate, push into "stage"
+        stage.push_back(*iter);
+
+        // push future candidates into "holding"
+        auto rdeps = GetReverseDependents(*iter);
+        for (unsigned int reverse_dep : rdeps) {
+          holding.push_back(reverse_dep);
+        }
+
+        iter = to_visit.erase(iter);
+        continue;
+      }
+
+      ++iter;
+    }
+
+    // push "stage" into "stages", and also into "visited"
+    stages.push_back(stage);
+    for (unsigned int dep : stage) {
+      visited.insert(dep);
+    }
+  }
+
+  return stages;
+}
+
 Dependencies::Dependencies() : deps_() {}
 
 bool Dependencies::AddDependency(unsigned int from, unsigned int to) {
