@@ -109,6 +109,13 @@ ReverseDependencies Dependencies::GenerateReverseDependencies() const {
     }
   }
 
+  if (fauxDependencies.HasCycle()) {
+    std::cout << "ERROR Dependencies::GenerateReverseDependencies: Internal "
+                 "error: ReverseDependencies has a cycle"
+              << std::endl;
+    return ReverseDependencies{};
+  }
+
   return ReverseDependencies(fauxDependencies.deps_);
 }
 
