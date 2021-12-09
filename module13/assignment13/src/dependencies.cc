@@ -214,14 +214,15 @@ bool Dependencies::CycleFromValue(unsigned int value) const {
   while (!next_queue.empty()) {
     temp = next_queue.front();
     next_queue.pop();
-    if (visited.find(temp) != visited.end()) {
-      return true;
-    }
-
-    visited.insert(temp);
 
     for (unsigned int dependency : GetDependencies(temp)) {
-      next_queue.push(dependency);
+      if (dependency == value) {
+        return true;
+      }
+      if (visited.find(dependency) == visited.end()) {
+        visited.insert(dependency);
+        next_queue.push(dependency);
+      }
     }
   }
 

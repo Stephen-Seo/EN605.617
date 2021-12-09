@@ -54,6 +54,7 @@ int main(int argc, char **argv) {
   OCLContext ocl_context{};
 
   // create shared buffer
+  std::cout << "Creating buffer \"shared\" with value 0" << std::endl;
   unsigned int temp = 0;
   if (!ocl_context.CreateBuffer("shared",
                                 CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
