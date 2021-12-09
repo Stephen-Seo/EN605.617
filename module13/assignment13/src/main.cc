@@ -10,6 +10,7 @@
 #include "opencl_context.h"
 
 int main(int argc, char **argv) {
+  // Arg parsing ===============================================================
   Args args{};
 
   if (!args.ParseArgs(argc, argv)) {
@@ -24,6 +25,7 @@ int main(int argc, char **argv) {
 
   std::cout << "Using input filename == " << args.input_filename_ << std::endl;
 
+  // Dependency resolution =====================================================
   Dependencies deps = DepsCSVParser::GetDepsFromCSV(args.input_filename_);
   if (deps.IsEmpty()) {
     std::cout << "ERROR: Got emtpy Dependencies object from CSV \""
@@ -57,6 +59,7 @@ int main(int argc, char **argv) {
     }
   }
 
+  // OpenCL setup ==============================================================
   OCLContext ocl_context{};
 
   // create shared buffer
@@ -100,6 +103,7 @@ int main(int argc, char **argv) {
     }
   }
 
+  // Execution with OpenCL =====================================================
   // for timings
   std::chrono::time_point<std::chrono::high_resolution_clock> start, end;
   if (args.do_timings_) {
