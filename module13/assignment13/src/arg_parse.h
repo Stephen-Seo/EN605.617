@@ -11,7 +11,9 @@ struct Args {
 
   static void PrintUsage();
 
-  std::string input_filename;
+  std::string input_filename_;
+  bool help_printed_;
+  bool print_intermediate_steps_;
 };
 
 #endif
