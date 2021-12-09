@@ -6,7 +6,8 @@
 Args::Args()
     : input_filename_(),
       help_printed_(false),
-      print_intermediate_steps_(false) {}
+      print_intermediate_steps_(false),
+      do_timings_(false) {}
 
 bool Args::ParseArgs(int argc, char **argv) {
   --argc;
@@ -26,6 +27,9 @@ bool Args::ParseArgs(int argc, char **argv) {
       PrintUsage();
       help_printed_ = true;
       return true;
+    } else if (std::strcmp(argv[0], "-t") == 0 ||
+               std::strcmp(argv[0], "--timings") == 0) {
+      do_timings_ = true;
     } else {
       std::cout << "Ignoring invalid arg \"" << argv[0] << '"' << std::endl;
     }
@@ -45,6 +49,7 @@ void Args::PrintUsage() {
                "Multiple lists define more dependencies, but there must not be "
                "a cycle\n"
                "  -h | --help\tPrint this usage text\n"
-               "  -p | --print\tPrint current value in between stages"
+               "  -p | --print\tPrint current value in between stages\n"
+               "If using \"run.sh\", prepend flags with \"ecq\""
             << std::endl;
 }

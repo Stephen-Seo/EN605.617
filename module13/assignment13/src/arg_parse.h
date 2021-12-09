@@ -14,6 +14,7 @@ struct Args {
   std::string input_filename_;
   bool help_printed_;
   bool print_intermediate_steps_;
+  bool do_timings_;
 };
 
 #endif
