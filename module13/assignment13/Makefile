@@ -4,7 +4,8 @@ SOURCES = \
 	src/main.cc \
 	src/arg_parse.cc \
 	src/csv_parser.cc \
-	src/dependencies.cc
+	src/dependencies.cc \
+	src/opencl_context.cc
 
 all: assignment13
 
