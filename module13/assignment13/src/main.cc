@@ -1,4 +1,3 @@
-#include <CL/cl.h>
 #include <fstream>
 #include <iostream>
 
@@ -100,7 +99,9 @@ int main(int argc, char **argv) {
     for (unsigned int id : stages.at(stage_idx)) {
       cl_event event;
       std::string name = std::to_string(id);
-      if (!ocl_context.ExecuteKernel(name, events.size(), events.empty() ? nullptr : events.data(), &event)) {
+      if (!ocl_context.ExecuteKernel(name, events.size(),
+                                     events.empty() ? nullptr : events.data(),
+                                     &event)) {
         std::cout << "ERROR: Failed to Execute kernel \"" << name << '"'
                   << std::endl;
         return 11;
@@ -113,16 +114,20 @@ int main(int argc, char **argv) {
     if (args.print_intermediate_steps_) {
       cl_int err_number = clWaitForEvents(events.size(), events.data());
       if (err_number != CL_SUCCESS) {
-        std::cout << "ERROR: Failed to wait for events while printing intermediate steps" << std::endl;
+        std::cout << "ERROR: Failed to wait for events while printing "
+                     "intermediate steps"
+                  << std::endl;
         return 12;
       }
       unsigned int value = 0;
-      err_number = clEnqueueReadBuffer(ocl_context.GetCommandQueue(), ocl_context.GetBuffer("shared"), CL_TRUE, 0, sizeof(unsigned int), &value, 0, nullptr, nullptr);
+      err_number = clEnqueueReadBuffer(
+          ocl_context.GetCommandQueue(), ocl_context.GetBuffer("shared"),
+          CL_TRUE, 0, sizeof(unsigned int), &value, 0, nullptr, nullptr);
       if (err_number != CL_SUCCESS) {
         std::cout << "ERROR: Failed to read shared buffer" << std::endl;
         return 13;
       }
-      std::cout << "Shared value at stage " << stage_idx << " is " << value
+      std::cout << "Shared value after stage " << stage_idx << " is " << value
                 << std::endl;
     }
   }
